@@ -23,7 +23,7 @@
 // Modulated = true 
 // Channel number = 0 
 
-static const registerSetting_t preferredSettings[]= 
+static const unsigned char cc1101_cfg[][2]= 
 {
   {CC1101_IOCFG0,      0x06},
   {CC1101_FIFOTHR,     0x47},

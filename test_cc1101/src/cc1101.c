@@ -2,12 +2,12 @@
 
 
 void setup_cc1101_spi(){
-	P1OUT |= BIT7 | BIT5 | BIT3; // SIMO & SMCLK & CS
-	P1DIR |= BIT7 | BIT5 | BIT3; // SIMO & SMCLK & CS
+	P1DIR |= BIT3; // CS	
+	P1OUT |= BIT3; // CS	
 	P1SEL |= BIT7 | BIT5 | BIT6 ; //SIMO & SOMI & SMCLK
 	P1SEL2 |= BIT7 | BIT5 | BIT7 ;
-
-	UCB0CTL0 |= UCCKPH | UCMSB | UCMST | UCSYNC ;
+	UCB0CTL1 |= UCSWRST ;
+	UCB0CTL0 |= UCCKPL | UCMSB | UCMST | UCSYNC ;
 	UCB0CTL1 |= UCSSEL_2 ;
 	UCB0BR0 |= 64; //prescale by 64
 	UCB0BR1	|= 0 ;
@@ -38,11 +38,11 @@ uchar strobe_cc1101(uchar cmd){
 	return stat ;
 }
 
-uchar read_cc1101_reg(uchar addr, uchar * data){
+uchar read_cc1101_reg(const uchar addr, uchar * data){
 	uchar stat ;	
 	P1OUT &= ~BIT3 ;
 	while(P1IN & BIT4); // wait module ready
-	UCB0TXBUF = (addr | 0x80)  ; //setting write bit
+	UCB0TXBUF = (addr | 0x80)   ; //setting write bit
 	while(UCB0STAT & UCBUSY);
 	stat = UCB0RXBUF ;
 	UCB0TXBUF = 0x00 ;
@@ -90,7 +90,7 @@ int read_cc1101_buffer(uchar addr, uchar * rx_data, uint size){
 	return 1 ;
 }
 
-void setup_cc1101(uchar cfg[][2], uint nb_regs){
+void setup_cc1101(const uchar cfg[][2], uint nb_regs){
 	uint i ;
 	strobe_cc1101(CC1101_SRES);
 	for(i = 0 ; i < nb_regs ; i++){

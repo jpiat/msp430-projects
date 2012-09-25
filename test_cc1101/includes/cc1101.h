@@ -6,15 +6,13 @@ typedef unsigned char uchar ;
 typedef unsigned int uint ;
 
 
-static uchar cc1101_433_cfg [][2] = {{0x00, 0x55},{0x00, 0xAA}};
-
 void setup_cc1101_spi();
 uchar write_cc1101_reg(uchar addr, uchar data);
 uchar read_cc1101_reg(uchar addr, uchar * data);
 uchar strobe_cc1101(uchar cmd);
 int write_cc1101_buffer(uchar addr, uchar * tx_data, uchar * rx_data, uint size);
 int read_cc1101_buffer(uchar addr, uchar * rx_data, uint size);
-void setup_cc1101(uchar cfg[][2], uint nb_regs);
+void setup_cc1101(const uchar cfg[][2], uint nb_regs);
 
 
 /**
@@ -113,73 +111,4 @@ void setup_cc1101(uchar cfg[][2], uint nb_regs);
 #define CC1101_RXBYTES           0x3B        // Overflow and Number of Bytes
 #define CC1101_RCCTRL1_STATUS    0x3C        // Last RC Oscillator Calibration Result
 #define CC1101_RCCTRL0_STATUS    0x3D        // Last RC Oscillator Calibration Result 
-
-
-// Chipcon
-// Product = CC1100
-// Chip version = F   (VERSION = 0x03)
-// Crystal accuracy = 10 ppm
-// X-tal frequency = 26 MHz
-// RF output power = 0 dBm
-// RX filterbandwidth = 232.142857 kHz
-// Deviation = 32 kHz
-// Datarate = 76.766968 kBaud
-// Modulation = (0) 2-FSK
-// Manchester enable = (0) Manchester disabled
-// RF Frequency = 432.999817 MHz
-// Channel spacing = 199.951172 kHz
-// Channel number = 0
-// Optimization = -
-// Sync mode = (3) 30/32 sync word bits detected
-// Format of RX/TX data = (0) Normal mode, use FIFOs for RX and TX
-// CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
-// Forward Error Correction = (0) FEC disabled
-// Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
-// Packetlength = 255
-// Preamble count = (2)  4 bytes
-// Append status = 1
-// Address check = (0) No address check
-// FIFO autoflush = 0
-// Device address = 0
-// GDO0 signal selection = ( 7) Asserts when a packet has been received with OK CRC. De-asserts when the first byte is read from the RX FIFO
-// GDO2 signal selection = (46) High impedance (3-state)
-  {
-    0x08,   // FSCTRL1   Frequency synthesizer control.
-    0x00,   // FSCTRL0   Frequency synthesizer control.
-    0x10,   // FREQ2     Frequency control word, high byte.
-    0xA7,   // FREQ1     Frequency control word, middle byte.
-    0x62,   // FREQ0     Frequency control word, low byte.
-    0x7B,   // MDMCFG4   Modem configuration.
-    0x83,   // MDMCFG3   Modem configuration.
-    0x03,   // MDMCFG2   Modem configuration.
-    0x22,   // MDMCFG1   Modem configuration.
-    0xF8,   // MDMCFG0   Modem configuration.
-    0x00,   // CHANNR    Channel number.
-    0x42,   // DEVIATN   Modem deviation setting (when FSK modulation is enabled).
-    0xB6,   // FREND1    Front end RX configuration.
-    0x10,   // FREND0    Front end TX configuration.
-    0x18,   // MCSM0     Main Radio Control State Machine configuration.
-    0x1D,   // FOCCFG    Frequency Offset Compensation Configuration.
-    0x1C,   // BSCFG     Bit synchronization Configuration.
-    0xC7,   // AGCCTRL2  AGC control.
-    0x00,   // AGCCTRL1  AGC control.
-    0xB2,   // AGCCTRL0  AGC control.
-    0xEA,   // FSCAL3    Frequency synthesizer calibration.
-    0x2A,   // FSCAL2    Frequency synthesizer calibration.
-    0x00,   // FSCAL1    Frequency synthesizer calibration.
-    0x1F,   // FSCAL0    Frequency synthesizer calibration.
-    0x59,   // FSTEST    Frequency synthesizer calibration.
-    0x81,   // TEST2     Various test settings.
-    0x35,   // TEST1     Various test settings.
-    0x09,   // TEST0     Various test settings.
-    0x0E,   // FIFOTHR   RXFIFO and TXFIFO thresholds.
-    0x2E,   // IOCFG2    GDO2 output pin configuration.
-    0x07,   // IOCFG0D   GDO0 output pin configuration. Refer to SmartRF锟?Studio User Manual for detailed pseudo register explanation.
-    0x04,   // PKTCTRL1  Packet automation control.
-    0x05,   // PKTCTRL0  Packet automation control.
-    0x00,   // ADDR      Device address.
-    CCx_PACKT_LEN    // PKTLEN    Packet length.
-  }
-};
-
 
