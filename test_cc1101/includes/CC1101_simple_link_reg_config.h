@@ -48,3 +48,5 @@ static const unsigned char cc1101_cfg[][2]=
   {CC1101_TEST1,       0x35},
   {CC1101_TEST0,       0x09},
 };
+
+#define ADD_STATUS 1
