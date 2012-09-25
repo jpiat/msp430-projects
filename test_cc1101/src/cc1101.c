@@ -128,7 +128,7 @@ int send_packet(cc1101_pkt * packet){
 	write_cc1101_reg(CC1101_TXFIFO, packet->dst_addr);
 	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
 	strobe_cc1101(CC1101_STX);
-
+	return 0 ;
 }
 
 int send_data(uchar addr, uchar * data, uchar length){
@@ -140,5 +140,6 @@ int send_data(uchar addr, uchar * data, uchar length){
 	write_cc1101_reg(CC1101_TXFIFO, addr);
 	write_cc1101_buffer(CC1101_TXFIFO, data, NULL, length);
 	strobe_cc1101(CC1101_STX);
+	return 0 ;
 }
 
