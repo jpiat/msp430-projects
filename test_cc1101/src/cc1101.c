@@ -114,8 +114,11 @@ int receive_packet(cc1101_pkt * packet){
 	read_cc1101_buffer(CC1101_RXFIFO, packet->pkt_data, packet->pkt_length - 1) ;
 	#ifdef ADD_STATUS
 		read_cc1101_buffer(CC1101_RXFIFO, status, 2) ;
+		return status[0] ;
+	#else
+		return 0 ;
 	#endif
-	return 0 ;
+	
 }	
 
 
