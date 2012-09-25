@@ -2,6 +2,7 @@
 
 
 extern void uart_rx(unsigned char val);
+void uart_send(unsigned char * data, unsigned char length);
 void uart_send(unsigned char val);
 void setup_uart_9600();
 

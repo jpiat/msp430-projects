@@ -2,8 +2,17 @@
 
 #define NULL ((void *) 0)
 
+#define MAX_PACKET_SIZE 32
+
 typedef unsigned char uchar ;
 typedef unsigned int uint ;
+
+
+typedef struct{
+	uchar pkt_length ;
+	uchar dst_address ;
+	uchar pkt_data[MAX_PACKET_SIZE] ;
+} cc1101_pkt ;
 
 
 void setup_cc1101_spi();
@@ -13,8 +22,9 @@ uchar strobe_cc1101(uchar cmd);
 int write_cc1101_buffer(uchar addr, uchar * tx_data, uchar * rx_data, uint size);
 int read_cc1101_buffer(uchar addr, uchar * rx_data, uint size);
 void setup_cc1101(const uchar cfg[][2], uint nb_regs);
-
-
+void send_packet(cc1101_pkt * packet);
+void send_data(uchar addr, uchar * data, uchar length);
+int receive_packet(cc1101_pkt * packet);
 /**
  * PATABLE & FIFO's
  */

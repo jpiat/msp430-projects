@@ -12,10 +12,20 @@ void setup_uart_9600(){
 	IE2 |= UCA0RXIE ;
 }
 
+
+void uart_send(unsigned char * data, unsigned char length){
+	unsigned int i ;
+	for(i = 0 ; i < length ; i ++){
+		uart_send(data[i]);	
+	}	
+}
+
 void uart_send(unsigned char val){
 	while(UCA0STAT & UCBUSY);
 	UCA0TXBUF = val ;
 }
+
+
 
 interrupt(USCIAB0RX_VECTOR) USCI0RX_ISR(void){
 	while(!(IFG2&UCA0TXIFG));

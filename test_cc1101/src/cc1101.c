@@ -97,3 +97,31 @@ void setup_cc1101(const uchar cfg[][2], uint nb_regs){
 		write_cc1101_reg(cfg[i][0], cfg[i][1]);			
 	}
 }
+
+int receive_packet(cc1101_pkt * packet){
+	uint nb_data_avail ;
+	read_cc1101_reg(CC1101_RXBYTES, &nb_data_avail);
+	if(nb_data_avail < 2){
+		return -1 ;	
+	}
+	read_cc1101_reg(CC1101_RXFIFO, &packet->pkt_length);
+	read_cc1101_reg(CC1101_RXFIFO, &packet->dst_addr);
+	while(nb_data_avail < packet->pkt_length) read_cc1101_reg(CC1101_RXBYTES, &nb_data_avail);
+	read_cc1101_buffer(CC1101_RXFIFO, packet->pkt_data, packet->pkt_length) ;
+	return 0 ;
+}	
+
+void send_packet(cc1101_pkt * packet){
+	write_cc1101_reg(CC1101_TXFIFO, packet->pkt_length);
+	write_cc1101_reg(CC1101_TXFIFO, packet->dst_address);
+	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
+	strobe_cc1101(CC1101_SFRX)
+}
+
+void send_data(uchar addr, uchar * data, uchar length){
+	write_cc1101_reg(CC1101_TXFIFO, length);
+	write_cc1101_reg(CC1101_TXFIFO, addr);
+	write_cc1101_buffer(CC1101_TXFIFO, data, NULL, length);
+	strobe_cc1101(CC1101_SFRX);
+}
+
