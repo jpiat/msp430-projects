@@ -99,7 +99,7 @@ void setup_cc1101(const uchar cfg[][2], uint nb_regs){
 }
 
 int receive_packet(cc1101_pkt * packet){
-	uint nb_data_avail ;
+	uchar nb_data_avail ;
 	read_cc1101_reg(CC1101_RXBYTES, &nb_data_avail);
 	if(nb_data_avail < 2){
 		return -1 ;	
@@ -113,9 +113,9 @@ int receive_packet(cc1101_pkt * packet){
 
 void send_packet(cc1101_pkt * packet){
 	write_cc1101_reg(CC1101_TXFIFO, packet->pkt_length);
-	write_cc1101_reg(CC1101_TXFIFO, packet->dst_address);
+	write_cc1101_reg(CC1101_TXFIFO, packet->dst_addr);
 	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
-	strobe_cc1101(CC1101_SFRX)
+	strobe_cc1101(CC1101_SFRX);
 }
 
 void send_data(uchar addr, uchar * data, uchar length){

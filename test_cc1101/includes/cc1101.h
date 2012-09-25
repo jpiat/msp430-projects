@@ -1,5 +1,7 @@
 #include <msp430g2553.h>
 
+#ifndef CC1101_H
+#define CC1101_H
 #define NULL ((void *) 0)
 
 #define MAX_PACKET_SIZE 32
@@ -10,7 +12,7 @@ typedef unsigned int uint ;
 
 typedef struct{
 	uchar pkt_length ;
-	uchar dst_address ;
+	uchar dst_addr ;
 	uchar pkt_data[MAX_PACKET_SIZE] ;
 } cc1101_pkt ;
 
@@ -121,4 +123,4 @@ int receive_packet(cc1101_pkt * packet);
 #define CC1101_RXBYTES           0x3B        // Overflow and Number of Bytes
 #define CC1101_RCCTRL1_STATUS    0x3C        // Last RC Oscillator Calibration Result
 #define CC1101_RCCTRL0_STATUS    0x3D        // Last RC Oscillator Calibration Result 
-
+#endif
