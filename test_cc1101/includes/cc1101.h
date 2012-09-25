@@ -20,6 +20,7 @@ typedef struct{
 void setup_cc1101_spi();
 uchar write_cc1101_reg(uchar addr, uchar data);
 uchar read_cc1101_reg(uchar addr, uchar * data);
+uchar read_cc1101_status(uchar addr, uchar * data);
 uchar strobe_cc1101(uchar cmd);
 int write_cc1101_buffer(uchar addr, uchar * tx_data, uchar * rx_data, uint size);
 int read_cc1101_buffer(uchar addr, uchar * rx_data, uint size);

@@ -52,6 +52,20 @@ uchar read_cc1101_reg(const uchar addr, uchar * data){
 	return stat ;
 }
 
+uchar read_cc1101_status(const uchar addr, uchar * data){
+	uchar stat ;	
+	P1OUT &= ~BIT3 ;
+	while(P1IN & BIT4); // wait module ready
+	UCB0TXBUF = (addr | 0xC0)   ; //setting write bit
+	while(UCB0STAT & UCBUSY);
+	stat = UCB0RXBUF ;
+	UCB0TXBUF = 0x00 ;
+	while(UCB0STAT & UCBUSY);
+	*data = UCB0RXBUF ;
+	P1OUT |= BIT3 ;
+	return stat ;
+}
+
 int write_cc1101_buffer(uchar addr, uchar * tx_data, uchar * rx_data, uint size){
 	uint counter, free ;	
 	P1OUT &= ~BIT3 ;
@@ -101,7 +115,7 @@ void setup_cc1101(const uchar cfg[][2], uint nb_regs){
 int receive_packet(cc1101_pkt * packet){
 	uchar nb_data_avail ;
 	uchar status [2] ;
-	read_cc1101_reg(CC1101_RXBYTES, &nb_data_avail);
+	read_cc1101_status(CC1101_RXBYTES, &nb_data_avail);
 	if(nb_data_avail < 2){
 		return -1 ;	
 	}else if(nb_data_avail & 0x80){
@@ -124,7 +138,7 @@ int receive_packet(cc1101_pkt * packet){
 
 int send_packet(cc1101_pkt * packet){
 	uchar nb_data_free ;
-	read_cc1101_reg(CC1101_TXBYTES, &nb_data_free);
+	read_cc1101_status(CC1101_TXBYTES, &nb_data_free);
 	if(nb_data_free <  packet->pkt_length){
 		return -1 ;	
 	}
@@ -136,7 +150,7 @@ int send_packet(cc1101_pkt * packet){
 
 int send_data(uchar addr, uchar * data, uchar length){
 	uchar nb_data_free ;
-	read_cc1101_reg(CC1101_TXBYTES, &nb_data_free);
+	read_cc1101_status(CC1101_TXBYTES, &nb_data_free);
 	if(nb_data_free <  length){
 		return -1 ;	
 	}
