@@ -99,7 +99,7 @@ void setup_cc1101(const uchar cfg[][2], uint nb_regs){
 }
 
 int receive_packet(cc1101_pkt * packet){
-	uint nb_data_avail ;
+	uchar nb_data_avail ;
 	uchar status [2] ;
 	read_cc1101_reg(CC1101_RXBYTES, &nb_data_avail);
 	if(nb_data_avail < 2){
@@ -120,7 +120,7 @@ int receive_packet(cc1101_pkt * packet){
 
 
 int send_packet(cc1101_pkt * packet){
-	uint nb_data_free ;
+	uchar nb_data_free ;
 	read_cc1101_reg(CC1101_TXBYTES, &nb_data_free);
 	if(nb_data_free <  packet->pkt_length){
 		return -1 ;	
@@ -132,7 +132,7 @@ int send_packet(cc1101_pkt * packet){
 }
 
 int send_data(uchar addr, uchar * data, uchar length){
-	uint nb_data_free ;
+	uchar nb_data_free ;
 	read_cc1101_reg(CC1101_TXBYTES, &nb_data_free);
 	if(nb_data_free <  length){
 		return -1 ;	
