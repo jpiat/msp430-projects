@@ -104,6 +104,9 @@ int receive_packet(cc1101_pkt * packet){
 	read_cc1101_reg(CC1101_RXBYTES, &nb_data_avail);
 	if(nb_data_avail < 2){
 		return -1 ;	
+	}else if(nb_data_avail & 0x80){
+		//fifo overflow
+		strobe_cc1101(CC1101_SFRX);      // Flush RXFIFO
 	}
 	read_cc1101_reg(CC1101_RXFIFO, &packet->pkt_length);
 	read_cc1101_reg(CC1101_RXFIFO, &packet->dst_addr);
@@ -115,13 +118,23 @@ int receive_packet(cc1101_pkt * packet){
 	return 0 ;
 }	
 
-void send_packet(cc1101_pkt * packet){
+int send_packet(cc1101_pkt * packet){
+	uint nb_data_free ;
+	read_cc1101_reg(CC1101_TXBYTES, &nb_data_free);
+	if(nb_data_free <  packet->pkt_length){
+		return -1 ;	
+	}
 	write_cc1101_reg(CC1101_TXFIFO, packet->dst_address);
 	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
 	strobe_cc1101(CC1101_STX);
 }
 
-void send_data(uchar addr, uchar * data, uchar length){
+int send_data(uchar addr, uchar * data, uchar length){
+	uint nb_data_free ;
+	read_cc1101_reg(CC1101_TXBYTES, &nb_data_free);
+	if(nb_data_free <  length){
+		return -1 ;	
+	}
 	write_cc1101_reg(CC1101_TXFIFO, addr);
 	write_cc1101_buffer(CC1101_TXFIFO, data, NULL, length);
 	strobe_cc1101(CC1101_STX);

@@ -22,8 +22,8 @@ uchar strobe_cc1101(uchar cmd);
 int write_cc1101_buffer(uchar addr, uchar * tx_data, uchar * rx_data, uint size);
 int read_cc1101_buffer(uchar addr, uchar * rx_data, uint size);
 void setup_cc1101(const uchar cfg[][2], uint nb_regs);
-void send_packet(cc1101_pkt * packet);
-void send_data(uchar addr, uchar * data, uchar length);
+int send_packet(cc1101_pkt * packet);
+int send_data(uchar addr, uchar * data, uchar length);
 int receive_packet(cc1101_pkt * packet);
 /**
  * PATABLE & FIFO's
