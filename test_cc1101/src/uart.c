@@ -13,14 +13,14 @@ void setup_uart_9600(){
 }
 
 
-void uart_send(unsigned char * data, unsigned char length){
+void uart_send_data(unsigned char * data, unsigned char length){
 	unsigned int i ;
 	for(i = 0 ; i < length ; i ++){
-		uart_send(data[i]);	
+		uart_send_char(data[i]);	
 	}	
 }
 
-void uart_send(unsigned char val){
+void uart_send_char(unsigned char val){
 	while(UCA0STAT & UCBUSY);
 	UCA0TXBUF = val ;
 }

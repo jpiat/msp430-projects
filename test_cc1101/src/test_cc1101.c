@@ -3,27 +3,26 @@
 #include "uart.h"
 
 
-cc1101_pkt send_packet, receive_packet ;
+cc1101_pkt packet_to_send, packet_to_receive ;
 
 
-void uart_rx(unsigned char val){
-	uchar stat ;		
+void uart_rx(unsigned char val){		
 		if(val == '\n'){
-			send_packet(&send_packet);			
-			uart_send(stat);	
+			send_packet(&packet_to_send);			
 		}else{
-			send_packet.pkt_data[send_packet.pkt_length] = val ;	
-			send_packet.pkt_length ++ ;			
+			packet_to_send.pkt_data[packet_to_send.pkt_length] = val ;	
+			packet_to_send.pkt_length ++ ;			
 		}
+		uart_send_char(val);
 }
 
 
 void init_packets(){
-	send_packet.dst_addr = 0 ;
-	send_packet.pkt_length = 0 ;
+	packet_to_send.dst_addr = 0 ;
+	packet_to_send.pkt_length = 0 ;
 
-	receive_packet.dst_addr = 0 ;
-	receive_packet.pkt_length = 0 ;
+	packet_to_receive.dst_addr = 0 ;
+	packet_to_receive.pkt_length = 0 ;
 }
 
 int main(){
@@ -41,9 +40,9 @@ int main(){
 	while(1){
 		P1OUT ^= BIT0 ;
 		__delay_cycles(100000);	
-		dummy = receive_packet(&receive_packet);
+		dummy = receive_packet(&packet_to_receive);
 		if(dummy == 0){
-			uart_send(receive_packet.pkt_data, receive_packet.pkt_length);
+			uart_send_data(packet_to_receive.pkt_data, packet_to_receive.pkt_length);
 		}
 	}
 }

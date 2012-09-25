@@ -118,15 +118,17 @@ int receive_packet(cc1101_pkt * packet){
 	return 0 ;
 }	
 
+
 int send_packet(cc1101_pkt * packet){
 	uint nb_data_free ;
 	read_cc1101_reg(CC1101_TXBYTES, &nb_data_free);
 	if(nb_data_free <  packet->pkt_length){
 		return -1 ;	
 	}
-	write_cc1101_reg(CC1101_TXFIFO, packet->dst_address);
+	write_cc1101_reg(CC1101_TXFIFO, packet->dst_addr);
 	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
 	strobe_cc1101(CC1101_STX);
+
 }
 
 int send_data(uchar addr, uchar * data, uchar length){
