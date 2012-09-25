@@ -1,5 +1,6 @@
 #include <cc1101.h>
 
+#define ADD_STATUS 1
 
 void setup_cc1101_spi(){
 	P1DIR |= BIT3; // CS	
