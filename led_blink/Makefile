@@ -14,7 +14,7 @@
  # eg if you have a source file foo.c then list it here
  SOURCES = $(wildcard src/*.c) 
  # Include are located in the Include directory
- INCLUDES = -Iinclude
+ INCLUDES = -Iincludes
  # Add or subtract whatever MSPGCC flags you want. There are plenty more
  #######################################################################################
  CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES)   
@@ -55,7 +55,7 @@
 	$(OBJCOPY) -O ihex $< $@
  %.txt: %.hex
 	$(MAKETXT) -O $@ -TITXT $< -I
-	unix2dos $(TARGET).txt
+	todos $(TARGET).txt
  #  The above line is required for the DOS based TI BSL tool to be able to read the txt file generated from linux/unix systems.
  %.o: %.c
 	echo "Compiling $<"
