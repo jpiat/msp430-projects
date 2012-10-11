@@ -34,12 +34,10 @@ int main(){
 	setup_cc1101(cc1101_cfg, 22);
 	setup_uart_9600();
 	init_packets();
-	P1DIR |= BIT0 ;
-	P1OUT &= ~BIT0 ;
 	__bis_SR_register(GIE);
 	while(1){
-		P1OUT ^= BIT0 ;
 		__delay_cycles(100000);	
+		//switchToRX();
 		dummy = receive_packet(&packet_to_receive);
 		if(dummy == 0){
 			uart_send_data(packet_to_receive.pkt_data, packet_to_receive.pkt_length);

@@ -149,6 +149,8 @@ int send_packet(cc1101_pkt * packet){
 	write_cc1101_reg(CC1101_TXFIFO, packet->dst_addr);
 	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
 	strobe_cc1101(CC1101_STX);
+	while (!(GDO0_PIN&GDO0)); // wait synced
+  	while (GDO0_PIN&GDO0); // wait TX done
 	return 0 ;
 }
 
