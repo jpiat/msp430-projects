@@ -14,6 +14,8 @@
 #define GDO2	BIT4
 
 #define GDO0_PDIR P1DIR
+#define GDO0_PREN P1REN
+#define GDO0_P P1OUT
 #define GDO0_PIN  P1IN
 #define GDO0	BIT0
 
