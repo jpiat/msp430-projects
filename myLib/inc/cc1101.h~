@@ -9,13 +9,13 @@
 #define CS_POUT	P1OUT
 #define CS	BIT3
 
-#define GD02_PDIR P1DIR
-#define GD02_PIN  P1IN
-#define GD02	BIT4
+#define GDO2_PDIR P1DIR
+#define GDO2_PIN  P1IN
+#define GDO2	BIT4
 
-#define GD00_PDIR P1DIR
-#define GD00_PIN  P1IN
-#define GD00	BIT0
+#define GDO0_PDIR P1DIR
+#define GDO0_PIN  P1IN
+#define GDO0	BIT0
 
 #define SPI_PSEL P1SEL
 #define SPI_PSEL2 P1SEL2

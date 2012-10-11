@@ -7,7 +7,12 @@
 
 void setup_cc1101_spi(){
 	CS_PDIR |= CS; // CS	
-	CS_POUT |= CS; // CS	
+	CS_POUT |= CS; // CS
+	
+	GDO0_PDIR &= ~GDO0 ;
+	GDO0_PREN |= GDO0 ;
+	GDO0_POUT |= GDO0 ;
+		
 	SPI_PSEL |= SIMO | SOMI | SMCLK ; //SIMO & SOMI & SMCLK
 	SPI_PSEL2 |= SIMO | SOMI | SIMO ;
 	UCB0CTL1 |= UCSWRST ;
@@ -141,11 +146,12 @@ int receive_packet(cc1101_pkt * packet){
 
 
 int send_packet(cc1101_pkt * packet){
-	uchar nb_data_free ;
-	read_cc1101_status(CC1101_TXBYTES, &nb_data_free);
-	if(nb_data_free <  packet->pkt_length){
+	uchar nb_data_to_send ;
+	read_cc1101_status(CC1101_TXBYTES, &nb_data_to_send);
+	if((nb_data_to_send & 0x7F) > 0){
 		return -1 ;	
 	}
+	write_cc1101_reg(CC1101_TXFIFO, packet->pkt_length + 1);
 	write_cc1101_reg(CC1101_TXFIFO, packet->dst_addr);
 	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
 	strobe_cc1101(CC1101_STX);
@@ -155,11 +161,12 @@ int send_packet(cc1101_pkt * packet){
 }
 
 int send_data(uchar addr, uchar * data, uchar length){
-	uchar nb_data_free ;
-	read_cc1101_status(CC1101_TXBYTES, &nb_data_free);
-	if(nb_data_free <  length){
+	uchar nb_data_to_send ;
+	read_cc1101_status(CC1101_TXBYTES, &nb_data_to_send);
+	if((nb_data_to_send & 0x7F) > 0){
 		return -1 ;	
 	}
+	write_cc1101_reg(CC1101_TXFIFO, length + 1);
 	write_cc1101_reg(CC1101_TXFIFO, addr);
 	write_cc1101_buffer(CC1101_TXFIFO, data, NULL, length);
 	strobe_cc1101(CC1101_STX);
