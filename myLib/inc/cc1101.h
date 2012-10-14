@@ -40,6 +40,9 @@ typedef struct{
 } cc1101_pkt ;
 
 
+#define FIFO_OVERFLOW -1
+#define FIFO_EMPTY    -2
+
 void setup_cc1101_spi();
 uchar write_cc1101_reg(uchar addr, uchar data);
 uchar read_cc1101_reg(uchar addr, uchar * data);

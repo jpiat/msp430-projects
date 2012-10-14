@@ -125,14 +125,15 @@ int receive_packet(cc1101_pkt * packet){
 	uchar nb_data_avail ;
 	uchar status [2] ;
 	read_cc1101_status(CC1101_RXBYTES, &nb_data_avail);
-	if(((nb_data_avail & 0x7F) < 2) && !(nb_data_avail & 0x80)){
-		return -1 ;	
-	}else if(nb_data_avail & 0x80){
+	 if(nb_data_avail & 0x80){
 		//fifo overflow
 		strobe_cc1101(CC1101_SIDLE); 
 		strobe_cc1101(CC1101_SFRX);      // Flush RXFIFO
 		switchToRX();
-		return -1 ;
+		return FIFO_OVERFLOW ;
+	}if(((nb_data_avail & 0x7F) == 0)){
+		switchToRX();		
+		return FIFO_EMPTY ;	
 	}
 	read_cc1101_reg(CC1101_RXFIFO, &packet->pkt_length);
 	read_cc1101_reg(CC1101_RXFIFO, &packet->dst_addr);

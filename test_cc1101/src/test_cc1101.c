@@ -1,5 +1,5 @@
 #include <msp430g2553.h>
-#include "CC1101_simple_link_reg_config.h"
+#include "cc1101_config.h"
 #include "uart.h"
 
 
@@ -37,6 +37,7 @@ int main(){
 	init_packets();
 	__bis_SR_register(GIE);
 	uart_send_data(test_string, 15);
+	switchToRX();
 	while(1){
 		__delay_cycles(100000);	
 		dummy = receive_packet(&packet_to_receive);
