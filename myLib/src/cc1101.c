@@ -125,11 +125,14 @@ int receive_packet(cc1101_pkt * packet){
 	uchar nb_data_avail ;
 	uchar status [2] ;
 	read_cc1101_status(CC1101_RXBYTES, &nb_data_avail);
-	if(nb_data_avail < 2){
+	if(((nb_data_avail & 0x7F) < 2) && !(nb_data_avail & 0x80)){
 		return -1 ;	
 	}else if(nb_data_avail & 0x80){
 		//fifo overflow
+		strobe_cc1101(CC1101_SIDLE); 
 		strobe_cc1101(CC1101_SFRX);      // Flush RXFIFO
+		switchToRX();
+		return -1 ;
 	}
 	read_cc1101_reg(CC1101_RXFIFO, &packet->pkt_length);
 	read_cc1101_reg(CC1101_RXFIFO, &packet->dst_addr);
@@ -146,35 +149,52 @@ int receive_packet(cc1101_pkt * packet){
 
 
 int send_packet(cc1101_pkt * packet){
-	uchar nb_data_to_send ;
+	uchar nb_data_to_send, cc1101_state ;
 	read_cc1101_status(CC1101_TXBYTES, &nb_data_to_send);
 	if((nb_data_to_send & 0x7F) > 0){
-		strobe_cc1101(CC1101_SFTX);// not the best thing to do 		
-		return -1 ;	
+		strobe_cc1101(CC1101_SFTX);// not the best thing to do but works
 	}
 	write_cc1101_reg(CC1101_TXFIFO, packet->pkt_length + 1);
 	write_cc1101_reg(CC1101_TXFIFO, packet->dst_addr);
 	write_cc1101_buffer(CC1101_TXFIFO, packet->pkt_data, NULL, packet->pkt_length);
 	strobe_cc1101(CC1101_STX);
+	read_cc1101_status(CC1101_MARCSTATE, &cc1101_state);
+	cc1101_state = cc1101_state & 0x1F ;
+	if((cc1101_state != 0x13) && (cc1101_state != 0x14) && (cc1101_state != 0x15)){
+		strobe_cc1101(CC1101_SIDLE);
+		strobe_cc1101(CC1101_SFTX);
+		switchToRX();
+		return -1;
+	}
 
 	while (!(GDO0_PIN&GDO0)); // wait synced
   	while (GDO0_PIN&GDO0); // wait TX done
+	switchToRX();
 	return 0 ;
 }
 
 int send_data(uchar addr, uchar * data, uchar length){
-	uchar nb_data_to_send ;
+	uchar nb_data_to_send, cc1101_state ;
 	read_cc1101_status(CC1101_TXBYTES, &nb_data_to_send);
 	if((nb_data_to_send & 0x7F) > 0){
-		strobe_cc1101(CC1101_SFTX);// not the best thing to do 
-		return -1 ;	
+		strobe_cc1101(CC1101_SFTX);// not the best thing to do but works
 	}
 	write_cc1101_reg(CC1101_TXFIFO, length + 1);
 	write_cc1101_reg(CC1101_TXFIFO, addr);
 	write_cc1101_buffer(CC1101_TXFIFO, data, NULL, length);
 	strobe_cc1101(CC1101_STX);
+	read_cc1101_status(CC1101_MARCSTATE, &cc1101_state);
+	cc1101_state = cc1101_state & 0x1F ;
+	 if((cc1101_state != 0x13) && (cc1101_state != 0x14) && (cc1101_state != 0x15)){
+		strobe_cc1101(CC1101_SIDLE);
+		strobe_cc1101(CC1101_SFTX);
+		switchToRX();
+		return -1;
+	}
+
 	while (!(GDO0_PIN&GDO0)); // wait synced
   	while (GDO0_PIN&GDO0); // wait TX done
+	switchToRX();
 	return 0 ;
 }
 

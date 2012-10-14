@@ -4,7 +4,9 @@
 
 cc1101_pkt packet_to_send, packet_to_receive ;
 
-
+void uart_rx(){
+	return ;
+}
 
 void init_packets(){
 	int i ;	

@@ -26,7 +26,8 @@ void init_packets(){
 }
 
 int main(){
-	uchar dummy;	
+	uchar dummy;
+	char * test_string = "cc1101 receiver \n";	
 	WDTCTL = WDTPW + WDTHOLD ;
 	BCSCTL1 = CALBC1_16MHZ ;
 	DCOCTL = CALDCO_16MHZ ;
@@ -35,12 +36,14 @@ int main(){
 	setup_uart_9600();
 	init_packets();
 	__bis_SR_register(GIE);
+	uart_send_data(test_string, 15);
 	while(1){
 		__delay_cycles(100000);	
-		//switchToRX();
 		dummy = receive_packet(&packet_to_receive);
+		uart_send_char(dummy + 48);
 		if(dummy == 0){
-			uart_send_data(packet_to_receive.pkt_data, packet_to_receive.pkt_length);
+			uart_send_char(packet_to_receive.dst_addr);
+			uart_send_data(packet_to_receive.pkt_data, packet_to_receive.pkt_length);		
 		}
 	}
 }
