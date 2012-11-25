@@ -9,7 +9,7 @@ spi_slave mf522_spi ;
 uchar buffer[24] ;
 char printBuffer[16];
 
-uchar * msg1 = "no card detected\n";
+char * msg1 = "no card detected\n";
 
 void uart_rx(unsigned char byte){
 	return ;
@@ -24,18 +24,20 @@ int main(){
 	DCOCTL = CALDCO_16MHZ ;
 	mf522_spi.csPin = 3;
 	setup_uart_9600();
-	setupSpiSlave(&mf522_spi);	
+	setupSpiSlave(&mf522_spi);
+	P1DIR |= BIT4 | BIT0;
+	P1OUT |= BIT4;	
 	MFRC522_Init(&mf522_spi);
 	while(1){
 		__delay_cycles(100000);	
 		status = MFRC522_Request(PICC_REQIDL, buffer);	
+		P1OUT ^= BIT0 ;		
 		if (status == MI_OK)
 		{
 			length = sprintf(printBuffer, "Card nb :%d%d \n",buffer[0], buffer[1] );                   
 			uart_send_data((unsigned char*) printBuffer, length);
-		}else{
-			uart_send_data(msg1, 17);
 		}
+
 		
 	}
 }
