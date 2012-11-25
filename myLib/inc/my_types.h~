@@ -16,8 +16,4 @@ typedef struct{
 	uchar * wP ;
 }CHAR_FIFO;
 
-_inline uchar readFifo(CHAR_FIFO * fifo){
-	if(fifo -> rP 
-	return fifo->buffer[fifo->rP ++] ;
-} 
 

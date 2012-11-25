@@ -3,10 +3,11 @@
 #include "uart.h"
 #include "spi.h"
 #include "mf522.h"
-
+#include "display.h"
 
 spi_slave mf522_spi ;
 uchar buffer[24] ;
+uchar printBuffer[16];
 
 void uart_rx(){
 	return ;
@@ -14,7 +15,8 @@ void uart_rx(){
 
 
 int main(){
-	uchar dummy, index, status;	
+	uchar dummy, index, status;
+	uint length ;	
 	WDTCTL = WDTPW + WDTHOLD ;
 	BCSCTL1 = CALBC1_16MHZ ;
 	DCOCTL = CALDCO_16MHZ ;
@@ -25,11 +27,8 @@ int main(){
 		status = MFRC522_Request(PICC_REQIDL, buffer);	
 		if (status == MI_OK)
 		{
-                        //Serial.println("Card detected");
-			//Serial.print(str[0],BIN);
-                        //Serial.print(" , ");
-			//Serial.print(str[1],BIN);
-                        //Serial.println(" ");
+			length = sprintf(printBuffer, "Card nb :%d%d \n",buffer[0], buffer[1] );                   
+		
 		}
 		
 	}

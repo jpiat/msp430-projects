@@ -1,4 +1,6 @@
 
+#ifndef MY_TYPES_H
+#define MY_TYPES_H
 
 #define NULL ((void *) 0)
 
@@ -15,9 +17,5 @@ typedef struct{
 	uchar * rP ;
 	uchar * wP ;
 }CHAR_FIFO;
-
-_inline uchar readFifo(CHAR_FIFO * fifo){
-	if(fifo -> rP 
-	return fifo->buffer[fifo->rP ++] ;
-} 
+#endif
 

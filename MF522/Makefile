@@ -14,7 +14,7 @@
  # eg if you have a source file foo.c then list it here
  SOURCES = $(wildcard src/*.c) $(wildcard ../myLib/src/*.c) 
  # Include are located in the Include directory
- INCLUDES = -Iincludes -I../myLib/inc
+ INCLUDES = -Iinc -I../myLib/inc
  # Add or subtract whatever MSPGCC flags you want. There are plenty more
  #######################################################################################
  CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES)   
