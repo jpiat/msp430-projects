@@ -5,8 +5,11 @@
 #include <legacymsp430.h>
 
 unsigned char oledBuffer[2] ;
-unsigned char pageBuffer[] = {0x00, 0x03, 0x0F, 0x3F, 0xFF};
+unsigned char pageBuffer[] = {0xFF, 0x3F, 0x0F, 0x03, 0x00};
 
+
+//#define OLED_ADDR 0x7A
+#define OLED_ADDR 0x3D
 
 volatile unsigned char i2cBusy = 0;
 volatile unsigned char i2cBufferLength = 0 ;
@@ -14,22 +17,22 @@ unsigned char * i2cBufferPtr ;
 volatile char txDone = 1 ;
 
 void initi2c(){
+	
 	P1SEL |= BIT6 + BIT7 ;
 	P1SEL2 |= BIT6 + BIT7 ;
-	P1REN |= BIT6 + BIT7;
-	P1OUT |= BIT6 + BIT7 ;
+	P1DIR |= BIT6 + BIT7;
 	UCB0CTL1 |= UCSWRST ;
 	UCB0CTL0 = UCMST + UCMODE_3 + UCSYNC ;
 	UCB0CTL1 = UCSSEL_2 + UCSWRST ;
 	UCB0BR0 = 192 ;
 	UCB0BR1 = 0;
-	UCB0I2CSA = 0x3D ; 
+	UCB0I2CSA = OLED_ADDR ; 
 	UCB0I2CIE = UCNACKIE + UCALIE ;
 	UCB0CTL1 &= ~UCSWRST ;
 	IE2 |= UCB0TXIE | UCB0RXIE ;
 }
 void writei2c(unsigned char addr, unsigned char * data, unsigned char nbData){	
-	UCB0I2CSA = 0x3C ;
+	UCB0I2CSA = addr ;
 	i2cBusy = 0 ;
 	i2cBufferPtr = data ;
 	i2cBufferLength = nbData ;
@@ -44,16 +47,16 @@ unsigned char readi2c(unsigned char addr){
 
 
 void oledSendData(unsigned char command){
-	oledBuffer[0] = 0x00;
+	oledBuffer[0] = 0x40;
 	oledBuffer[1] = command ;
-	writei2c(0x3D, oledBuffer, 2);
+	writei2c(OLED_ADDR, oledBuffer, 2);
 }
 
 
 void oledSendCommand(unsigned char command){
 	oledBuffer[0] = 0x80;
 	oledBuffer[1] = command ;
-	writei2c(0x3D, oledBuffer, 2);
+	writei2c(OLED_ADDR, oledBuffer, 2);
 }
 
 
@@ -138,12 +141,15 @@ int main(){
 	//oledSendCommand(0x14);
 	oledSendCommand(0x10);
 	oledSendCommand(0xAF);
+	P1OUT |= BIT0 ;
 	fill_oled_page(0, pageBuffer, 5);
 	fill_oled_page(1, pageBuffer, 5);
 	fill_oled_page(2, pageBuffer, 5);
 	fill_oled_page(3, pageBuffer, 5);
 	fill_oled_page(4, pageBuffer, 5);
 	fill_oled_page(5, pageBuffer, 5);
+	fill_oled_page(6, pageBuffer, 5);
+	fill_oled_page(7, pageBuffer, 5);
 	P1OUT &= ~BIT0 ;
 	while(1);
 }
@@ -175,7 +181,7 @@ interrupt(USCIAB0RX_VECTOR) USCI0RX_ISR(void) {
                 i2cBusy = -1;
 		txDone = -1 ;
         }
-        P1OUT |= BIT0 ;
+        
 	IFG2 &= ~UCB0RXIFG;
 }
 
