@@ -27,7 +27,7 @@ void uart_send_char(unsigned char val){
 
 
 
-interrupt(USCIAB0RX_VECTOR) USCI0RX_ISR(void){
+void UartRxInterruptService(void){
 	while(!(IFG2&UCA0TXIFG));
 	uart_rx(UCA0RXBUF);
 }

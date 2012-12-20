@@ -6,7 +6,7 @@
 void initi2c(void);
 void writei2c(unsigned char addr, unsigned char * data, unsigned char nbData);
 unsigned char readi2c(unsigned char addr);
-void i2cInterruptService(void);
-
+inline void i2cTxInterruptService(void);
+inline void i2cRxInterruptService(void);
 
 #endif
