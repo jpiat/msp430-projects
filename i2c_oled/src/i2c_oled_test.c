@@ -5,9 +5,15 @@
 #include "CourierNew_5x7.h"
 #include "CourierNew_14x15.h"
 #include <legacymsp430.h>
+#include <stdarg.h>
 
-unsigned char oledBuffer[2] ;
-unsigned char pageBuffer[] = {0xFF, 0x3F, 0x0F, 0x03, 0x00};
+#define MAX_LENGTH	40
+#define LINE_JUMP	9
+unsigned char oledBuffer[15] ;
+unsigned char pageBuffer[MAX_LENGTH] ;
+
+
+
 /*
 #define font_table data_table_SMALL
 #define FONT_WIDTH 5
@@ -18,15 +24,179 @@ unsigned char pageBuffer[] = {0xFF, 0x3F, 0x0F, 0x03, 0x00};
 #define FONT_SPAN 2
 
 //const char * testPhrase = "CE QUI SE CONCOIT BIEN S'ENONCE CLAIREMENT ET LES MOTS POUR LE DIRE VOUS VIENNENT AISEMENT";
-const char * testPhrase = "THIS IS A TEST !";
+//const char * testPhrase = "THIS IS A TEST !\n%d";
+const char * testPhrase = "TEMP IS:\n \n%d Cel ";
 
 //#define OLED_ADDR 0x7A
 #define OLED_ADDR 0x3D
 
 
-void oledSendData(unsigned char command){
+void chiptemp_setup()
+{
+    ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON;
+    ADC10CTL1 = INCH_10 + ADC10DIV_3;   // Channel 10 = Temp Sensor
+}
+ 
+int chiptemp_read()
+{
+    unsigned adc;
+ 
+    // ENC = enable conversion, ADC10SC = start conversion
+    ADC10CTL0 |= ENC + ADC10SC;
+    while (!(ADC10CTL0 & ADC10IFG))
+        /* wait until conversion is completed */ ;
+ 
+    adc = ADC10MEM;
+ 
+    // shut off conversion and lower flag to save power.
+    // ADC10SC is reset automatically.
+    while (ADC10CTL0 & ADC10BUSY)
+        /* wait for non-busy per section 22.2.6.6 in User's Guide */ ;
+    ADC10CTL0 &= ~ENC;
+    ADC10CTL0 &= ~ADC10IFG;
+ 
+    // return degrees F
+    return (int)((adc * 27069L - 18169625L) >> 16);
+}
+
+
+
+unsigned int itoa(int n, char * buffer) {
+        unsigned char i = 0;
+        unsigned int div = 10000;
+        unsigned int f;
+        unsigned char leading_zero = 1;
+        char c;
+        if (n < 0) {
+                buffer[i] = '-';
+                i++;
+                n = -n;
+        }
+        for (div = 10000; div >= 1; div = div / 10) {
+                f = n / div;
+                if (leading_zero) {
+                        if (f != 0 || div == 10) {
+                                leading_zero = 0;
+                                c = f + 48;
+                                buffer[i] = c;
+                                i += 1;
+                        }
+                } else {
+                        c = f + 48;
+                        buffer[i] = c;
+                        i++;
+                }
+                n = n - (f * div);
+        }
+        return (i);
+}
+
+unsigned int ftoa(float n, char * buffer) {
+        unsigned char i = 0;
+        float div = 1000;
+        unsigned int f;
+        unsigned char leading_zero = 1;
+        char c;
+        if (n < 0) {
+                buffer[i] = '-';
+                i++;
+                n = -n;
+        }
+        if(n == 0){
+                buffer[i] = 48 ;
+                i ++ ;
+                return i ;
+        }
+        for (div = 1000; div >= 0.001 && i < 4; div = div / 10) {
+                if (div == 0.1) {
+                        if(leading_zero){
+                                buffer[i] = '0';
+                                i += 1;
+                        }
+                        buffer[i] = '.';
+                        i += 1;
+                        leading_zero = 0;
+                }
+                f = n / div;
+                if (leading_zero) {
+                        if (f != 0) {
+                                leading_zero = 0;
+                                c = f + 48;
+                                buffer[i] = c;
+                                i += 1;
+                        }
+                } else {
+                        c = f + 48;
+                        buffer[i] = c;
+                        i++;
+                }
+                n = n - (f * div);
+        }
+        return (i);
+}
+
+
+unsigned int sprintf(char *buffer, const char * txt, ...) {
+        va_list arguments;
+        unsigned int length = 0;
+        unsigned int wr_index = 0;
+        va_start ( arguments, txt );
+        while(length < MAX_LENGTH && txt[length] != 0) {
+               if(txt[length] =='\n') {
+                        while(wr_index%LINE_JUMP) {
+                                buffer[wr_index] = ' ';
+                                wr_index ++;
+                        }
+                        length ++;
+                }
+                if(txt[length] =='%') {
+                        int nb;
+                        float fb;
+                        switch(txt[length + 1]) {
+                                case 'd':
+                                nb = va_arg( arguments, int );
+                                wr_index += itoa(nb, (char *) &buffer[wr_index]);
+                                length += 2;
+                                break;
+                                case 'f':
+                                fb = va_arg( arguments, float );
+                                wr_index += ftoa(fb, (char *) &buffer[wr_index]);
+                                length += 2;
+                                break;
+                                default:
+                                buffer[wr_index] = txt[length];
+                                length ++;
+                                wr_index ++;
+                                break;
+                        }
+                } else {
+                        buffer[wr_index] = txt[length];
+                        length ++;
+                        wr_index ++;
+                }
+
+        }
+	buffer[wr_index] = '\0';
+        va_end(arguments);
+        return wr_index;
+}
+
+
+
+
+void oledSendDataBuffer(unsigned char * dataBuffer, unsigned char bufferLength){
+	unsigned char i ;	
 	oledBuffer[0] = 0x40;
-	oledBuffer[1] = command ;
+	for(i = 0 ; i < bufferLength ; i++){
+		oledBuffer[i+1] = dataBuffer[i];	
+	}
+	writei2c(OLED_ADDR, oledBuffer, bufferLength+1);
+}
+
+
+void oledSendData(unsigned char data){
+	oledBuffer[0] = 0x40;
+	oledBuffer[1] = data ;
 	writei2c(OLED_ADDR, oledBuffer, 2);
 }
 
@@ -76,9 +246,10 @@ void print_screen(unsigned char page, unsigned char column, unsigned char * txt)
 		for(k=0 ; k < FONT_SPAN ; k++){	
 			Set_Start_Page(curPage - k);
 			Set_Start_Column(curCol);
-			for(j=0 ; j < FONT_WIDTH ; j++){
+			oledSendDataBuffer(&font_table[cIndex + (k*FONT_WIDTH)], FONT_WIDTH);				
+			/*for(j=0 ; j < FONT_WIDTH ; j++){
 				oledSendData(font_table[cIndex + j + (k*FONT_WIDTH) ]);
-			}
+			}*/
 		}
 		i ++ ;
 		curCol = (curCol + (FONT_WIDTH));
@@ -118,7 +289,9 @@ void fill_oled_page(unsigned char page, unsigned char * data, unsigned char data
 
 
 int main(){
-	unsigned long int i ;	
+	unsigned long int i ;
+	unsigned int count = 0;
+	int temp, capt, sum ;
 	WDTCTL = WDTPW + WDTHOLD ;
 	BCSCTL1 = CALBC1_16MHZ ;
 	DCOCTL = CALDCO_16MHZ ;
@@ -129,7 +302,8 @@ int main(){
 	}
 	P1OUT |= BIT5 ;
 	P1OUT &= ~BIT0 ;
-	initi2c();
+	initi2c(10);
+	chiptemp_setup();
 	__bis_SR_register(GIE);
 	oledSendCommand(0xAE);	
 	oledSendCommand(0x00);
@@ -157,7 +331,7 @@ int main(){
 	oledSendCommand(0xAF);
 	P1OUT |= BIT0 ;
 	fill_screen(0x00) ;
-	print_screen(5, 0, testPhrase);
+	
 	/*	fill_oled_page(0, &data_table_SMALL[0], 128);
 	fill_oled_page(1, &data_table_SMALL[128], 128);
 	fill_oled_page(2, &data_table_SMALL[256], 128);
@@ -167,7 +341,18 @@ int main(){
 	fill_oled_page(6, &data_table_SMALL[256], 128);
 	fill_oled_page(7, &data_table_SMALL[384], 128);*/
 	P1OUT &= ~BIT0 ;
-	while(1);
+	while(1){
+		capt = chiptemp_read();
+		count ++ ;
+		sum += capt ;
+		if(count >= 100){
+			count = 0 ;
+			temp = sum/100 ;	
+			sum = 0 ;
+			sprintf(pageBuffer,testPhrase, temp);
+			print_screen(7, 0, pageBuffer);	
+		} 
+	}
 }
 
 interrupt(USCIAB0TX_VECTOR) USCI0TX_ISR(void){
