@@ -3,17 +3,26 @@
 #ifndef SPI_H
 #define SPI_H
 
+typedef enum{
+	NATIVE,
+	BITBANG
+}spi_type;
+
 typedef struct{
 	unsigned char portNb ;
 	unsigned char csPin ;
+	unsigned char clkPin ;
+	unsigned char misoPin ;
+	unsigned char mosiPin ;
 	unsigned char speed ; // Mhz
+	spi_type interface_type;
 }spi_slave ;
 
 
 void setupSpiSlave(spi_slave * slave);
 void spiClearCs(spi_slave * slave);
 void spiSetCs(spi_slave * slave);
-unsigned char writeByte(unsigned char val);
+unsigned char spiWriteByte(unsigned char val, spi_slave * slave);
 void spiTxRxSlave(spi_slave * slave, unsigned char * send_buffer, unsigned char * receive_buffer , unsigned char length);
 
 #endif

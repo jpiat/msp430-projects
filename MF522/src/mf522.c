@@ -7,8 +7,8 @@ void Write_MFRC522(uchar addr, uchar val)
 {
 	spiClearCs(mf522_slave);
 
-	spiWriteByte((addr<<1)&0x7E);	
-	spiWriteByte(val);
+	spiWriteByte((addr<<1)&0x7E, mf522_slave);	
+	spiWriteByte(val, mf522_slave);
 	
 	spiSetCs(mf522_slave);
 }
@@ -18,8 +18,8 @@ uchar Read_MFRC522(uchar addr)
 	uchar val;
 
 	spiClearCs(mf522_slave);
-	spiWriteByte(((addr<<1)&0x7E) | 0x80);	
-	val =spiWriteByte(0x00);
+	spiWriteByte(((addr<<1)&0x7E) | 0x80, mf522_slave);	
+	val =spiWriteByte(0x00, mf522_slave);
 	
 	spiSetCs(mf522_slave);
 	

@@ -1,4 +1,3 @@
-
 #include "spi.h"
 #include "my_types.h"
 

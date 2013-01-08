@@ -1,7 +1,8 @@
-
 #include <msp430g2553.h>
 #include "my_types.h"
 #include "i2c.h"
+#include "spi.h"
+#include "mf522.h"
 #include "CourierNew_5x7.h"
 #include "CourierNew_14x15.h"
 #include <legacymsp430.h>
@@ -9,10 +10,13 @@
 
 #define MAX_LENGTH	40
 #define LINE_JUMP	9
-unsigned char oledBuffer[24] ;
+unsigned char mf522_buffer[16] ;
+unsigned char oledBuffer[15] ;
 unsigned char pageBuffer[MAX_LENGTH] ;
 
+spi_slave mf522_spi ;
 
+const char * msg1 = "no card \ndetected\n";
 
 /*
 #define font_table data_table_SMALL
@@ -23,41 +27,8 @@ unsigned char pageBuffer[MAX_LENGTH] ;
 #define FONT_WIDTH 14
 #define FONT_SPAN 2
 
-//const char * testPhrase = "CE QUI SE CONCOIT BIEN S'ENONCE CLAIREMENT ET LES MOTS POUR LE DIRE VOUS VIENNENT AISEMENT";
-//const char * testPhrase = "THIS IS A TEST !\n%d";
-const char * testPhrase = "TEMP IS:\n \n%d Cel ";
-
 //#define OLED_ADDR 0x7A
 #define OLED_ADDR 0x3D
-
-
-void chiptemp_setup()
-{
-    ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON;
-    ADC10CTL1 = INCH_10 + ADC10DIV_3;   // Channel 10 = Temp Sensor
-}
- 
-int chiptemp_read()
-{
-    unsigned adc;
- 
-    // ENC = enable conversion, ADC10SC = start conversion
-    ADC10CTL0 |= ENC + ADC10SC;
-    while (!(ADC10CTL0 & ADC10IFG))
-        /* wait until conversion is completed */ ;
- 
-    adc = ADC10MEM;
- 
-    // shut off conversion and lower flag to save power.
-    // ADC10SC is reset automatically.
-    while (ADC10CTL0 & ADC10BUSY)
-        /* wait for non-busy per section 22.2.6.6 in User's Guide */ ;
-    ADC10CTL0 &= ~ENC;
-    ADC10CTL0 &= ~ADC10IFG;
- 
-    // return degrees F
-    return (int)((adc * 27069L - 18169625L) >> 16);
-}
 
 
 
@@ -154,20 +125,20 @@ unsigned int sprintf(char *buffer, const char * txt, ...) {
                         float fb;
                         switch(txt[length + 1]) {
                                 case 'd':
-                                nb = va_arg( arguments, int );
-                                wr_index += itoa(nb, (char *) &buffer[wr_index]);
-                                length += 2;
-                                break;
+		                        nb = va_arg( arguments, int );
+		                        wr_index += itoa(nb, (char *) &buffer[wr_index]);
+		                        length += 2;
+		                        break;
                                 case 'f':
-                                fb = va_arg( arguments, float );
-                                wr_index += ftoa(fb, (char *) &buffer[wr_index]);
-                                length += 2;
-                                break;
+		                        fb = va_arg( arguments, double );
+		                        wr_index += ftoa(fb, (char *) &buffer[wr_index]);
+		                        length += 2;
+		                        break;
                                 default:
-                                buffer[wr_index] = txt[length];
-                                length ++;
-                                wr_index ++;
-                                break;
+		                        buffer[wr_index] = txt[length];
+		                        length ++;
+		                        wr_index ++;
+		                        break;
                         }
                 } else {
                         buffer[wr_index] = txt[length];
@@ -291,7 +262,7 @@ void fill_oled_page(unsigned char page, unsigned char * data, unsigned char data
 int main(){
 	unsigned long int i ;
 	unsigned int count = 0;
-	int temp, capt, sum ;
+	unsigned char status ;
 	WDTCTL = WDTPW + WDTHOLD ;
 	BCSCTL1 = CALBC1_16MHZ ;
 	DCOCTL = CALDCO_16MHZ ;
@@ -302,8 +273,18 @@ int main(){
 	}
 	P1OUT |= BIT5 ;
 	P1OUT &= ~BIT0 ;
-	initi2c(10);
-	chiptemp_setup();
+	
+	mf522_spi.interface_type = BITBANG ;
+	mf522_spi.csPin = 3;
+	mf522_spi.misoPin = 1;
+	mf522_spi.mosiPin = 2;
+	mf522_spi.clkPin = 0;
+	setupSpiSlave(&mf522_spi);
+	P1DIR |= BIT0;
+	P2DIR |= BIT4; // reset pin of mf522
+	P2OUT |= BIT4;
+	MFRC522_Init(&mf522_spi);
+	initi2c(40);
 	__bis_SR_register(GIE);
 	oledSendCommand(0xAE);	
 	oledSendCommand(0x00);
@@ -332,26 +313,28 @@ int main(){
 	P1OUT |= BIT0 ;
 	fill_screen(0x00) ;
 	
-	/*	fill_oled_page(0, &data_table_SMALL[0], 128);
-	fill_oled_page(1, &data_table_SMALL[128], 128);
-	fill_oled_page(2, &data_table_SMALL[256], 128);
-	fill_oled_page(3, &data_table_SMALL[384], 128);
-	fill_oled_page(4, &data_table_SMALL[0], 128);
-	fill_oled_page(5, &data_table_SMALL[128], 128);
-	fill_oled_page(6, &data_table_SMALL[256], 128);
-	fill_oled_page(7, &data_table_SMALL[384], 128);*/
 	P1OUT &= ~BIT0 ;
+	count = 0 ;
 	while(1){
-		capt = chiptemp_read();
-		count ++ ;
-		sum += capt ;
-		if(count >= 100){
-			count = 0 ;
-			temp = sum/100 ;	
-			sum = 0 ;
-			sprintf(pageBuffer,testPhrase, temp);
-			print_screen(7, 0, pageBuffer);	
-		} 
+		__delay_cycles(100000);
+		__delay_cycles(100000);
+		__delay_cycles(100000);		
+		status = MFRC522_Request(PICC_REQIDL, mf522_buffer);	
+			
+		if (status == MI_OK)
+		{
+			P1OUT |= BIT0 ;
+			sprintf(pageBuffer, "Card nb :%d%d \n",mf522_buffer[0], mf522_buffer[1] ); 
+			count = 50 ;                  
+		}else{
+			P1OUT &= ~BIT0 ;
+			if(count == 0){
+				sprintf(pageBuffer, msg1 );
+			}else{
+				count -- ;
+			}  			
+		}
+		print_screen(7, 0, pageBuffer);		
 	}
 }
 

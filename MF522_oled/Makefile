@@ -8,13 +8,13 @@
  # $(TARGET).elf $(TARGET).hex and $(TARGET).txt nad $(TARGET).map are all generated.
  # The TXT file is used for BSL loading, the ELF can be used for JTAG use
  # 
- TARGET     = MF522_test
+ TARGET     = MF522_oled
  MCU        = msp430g2553
  # List all the source files here
  # eg if you have a source file foo.c then list it here
- SOURCES = $(wildcard src/*.c) ../myLib/src/spi.c ../myLib/src/uart.c
+ SOURCES = $(wildcard src/*.c) ../myLib/src/i2c.c ../myLib/src/spi.c ../MF522/src/mf522.c
  # Include are located in the Include directory
- INCLUDES = -Iinc -I../myLib/inc
+ INCLUDES = -Iinc -I../myLib/inc -I../MF522/inc
  # Add or subtract whatever MSPGCC flags you want. There are plenty more
  #######################################################################################
  CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES)   

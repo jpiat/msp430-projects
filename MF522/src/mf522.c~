@@ -7,8 +7,8 @@ void Write_MFRC522(uchar addr, uchar val)
 {
 	spiClearCs(mf522_slave);
 
-	spiWriteByte((addr<<1)&0x7E);	
-	spiWriteByte(val);
+	spiWriteByte((addr<<1)&0x7E, mf522_slave);	
+	spiWriteByte(val, mf522_slave);
 	
 	spiSetCs(mf522_slave);
 }
@@ -18,8 +18,8 @@ uchar Read_MFRC522(uchar addr)
 	uchar val;
 
 	spiClearCs(mf522_slave);
-	spiWriteByte(((addr<<1)&0x7E) | 0x80);	
-	val =spiWriteByte(0x00);
+	spiWriteByte(((addr<<1)&0x7E) | 0x80, mf522_slave);	
+	val =spiWriteByte(0x00, mf522_slave);
 	
 	spiSetCs(mf522_slave);
 	
@@ -266,19 +266,20 @@ uchar MFRC522_SelectTag(uchar *serNum)
     uchar status;
     uchar size;
     uint recvBits;
+    uchar buffer[16];
 
-    mf522_buffer[0] = PICC_SElECTTAG;
-    mf522_buffer[1] = 0x70;
+    buffer[0] = PICC_SElECTTAG;
+    buffer[1] = 0x70;
     for (i=0; i<5; i++)
     {
-    	mf522_buffer[i+2] = *(serNum+i);
+    	buffer[i+2] = *(serNum+i);
     }
-    CalulateCRC(mf522_buffer, 7, &mf522_buffer[7]);
-    status = MFRC522_ToCard(PCD_TRANSCEIVE, mf522_buffer, 9, mf522_buffer, &recvBits);
+    CalulateCRC(buffer, 7, &buffer[7]);
+    status = MFRC522_ToCard(PCD_TRANSCEIVE, buffer, 9, buffer, &recvBits);
     
     if ((status == MI_OK) && (recvBits == 0x18))
     {   
-		size = mf522_buffer[0]; 
+		size = buffer[0]; 
 	}
     else
     {   
@@ -293,17 +294,18 @@ uchar MFRC522_Auth(uchar authMode, uchar BlockAddr, uchar *Sectorkey, uchar *ser
     uchar status;
     uint recvBits;
     uchar i;
-    mf522_buffer[0] = authMode;
-    mf522_buffer[1] = BlockAddr;
+    uchar buff[12];
+    buff[0] = authMode;
+    buff[1] = BlockAddr;
     for (i=0; i<6; i++)
     {    
-		mf522_buffer[i+2] = *(Sectorkey+i);   
+		buff[i+2] = *(Sectorkey+i);   
 	}
     for (i=0; i<4; i++)
     {    
-		mf522_buffer[i+8] = *(serNum+i);   
+		buff[i+8] = *(serNum+i);   
 	}
-    status = MFRC522_ToCard(PCD_AUTHENT, mf522_buffer, 12, mf522_buffer, &recvBits);
+    status = MFRC522_ToCard(PCD_AUTHENT, buff, 12, buff, &recvBits);
 
     if ((status != MI_OK) || (!(Read_MFRC522(Status2Reg) & 0x08)))
     {   
@@ -338,10 +340,11 @@ uchar MFRC522_Write(uchar blockAddr, uchar *writeData)
 {
     uchar status;
     uint recvBits;
-    uchar i; 
+    uchar i;
+    uchar buff[18]; 
     
-    mf522_buffer[0] = PICC_WRITE;
-    mf522_buffer[1] = blockAddr;
+    buff[0] = PICC_WRITE;
+    buff[1] = blockAddr;
     CalulateCRC(buff, 2, &buff[2]);
     status = MFRC522_ToCard(PCD_TRANSCEIVE, buff, 4, buff, &recvBits);
 
