@@ -428,8 +428,9 @@ int parseGPS(char c, struct gps_data * dataP) {
 			sum = asciiToHex(buffer);
 			if (sum != dataP->checksum) {
 				dataP->valid = -1;
+			}else{
+				new_fix(dataP);
 			}
-			gps_callback(dataP);
 			parserState = SYNC;
 			return 1;
 
