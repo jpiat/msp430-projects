@@ -82,7 +82,7 @@ unsigned int ftoa(float n, char * buffer) {
                 i ++ ;
                 return i ;
         }
-        for (div = 1000; div >= 0.001 && i < 4; div = div / 10) {
+        for (div = 1000; div >= 0.001 && i < 8; div = div / 10) {
                 if (div == 0.1) {
                         if(leading_zero){
                                 buffer[i] = '0';
@@ -276,7 +276,12 @@ int main(){
 	WDTCTL = WDTPW + WDTHOLD ;
 	BCSCTL1 = CALBC1_16MHZ ;
 	DCOCTL = CALDCO_16MHZ ;
-	P1DIR |= BIT0 ;
+	P1DIR |= BIT0 + BIT5;
+	P1OUT &= ~BIT5;
+	for(i = 0 ; i < 3000 ; i++){
+		nop();
+	}
+	P1OUT |= BIT5 ;
 	P1OUT &= ~BIT0 ;
 	initi2c(40);
 	setup_uart_9600();
@@ -311,16 +316,19 @@ int main(){
 	count = 0 ;
 	while(1){
 		char gpsChar ;
-		__delay_cycles(100000);
+		unsigned char length ;
 		if(fifo_available(&uartFifo) > 0){
 			gpsChar = fifo_read(&uartFifo);	
+			//uart_send_char(gpsChar);
 			if(parseGPS(gpsChar, &gpsFix) > 0){
-				sprintf(pageBuffer, "%f \n %f", gpsFix.latitude, gpsFix.longitude); 
+				length = sprintf(pageBuffer, "%f\n%f\n%d", gpsFix.latitude, gpsFix.longitude, gpsFix.time); 
+				//uart_send_data(pageBuffer, length);
+				print_screen(7, 0, pageBuffer);					
 				P1OUT |= BIT0 ;
 			}
 			P1OUT &= ~BIT0 ;
 		}
-		print_screen(7, 0, pageBuffer);		
+			
 	}
 }
 

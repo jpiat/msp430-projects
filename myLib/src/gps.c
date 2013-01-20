@@ -1,5 +1,6 @@
 #include <math.h>
 #include "gps.h"
+#include "fifo.h"
 
 //$GPRMC,235502.475,A,4338.6080,N,00126.7317,E,1.25,63.77,171111,,,A*5B
 #define PI 3.14159265358f
@@ -42,7 +43,7 @@ enum gps_parser_state parserState;
 unsigned int counter;
 unsigned char frame_checksum;
 char buffer[12];
-
+char * header = "GPRMC";
 
 
 float fast_atan2f(float y, float x) {
@@ -266,7 +267,7 @@ char parseFloatField(char c, char * buffer, unsigned int count, float * val) {
 	return 0;
 }
 
-int parseGPS(char c, struct gps_data * dataP) {
+int parseGPS(char c, struct gps_fix * dataP) {
 	unsigned char ret;
 	frame_checksum ^= c;
 	switch (parserState) {
@@ -288,7 +289,7 @@ int parseGPS(char c, struct gps_data * dataP) {
 		}
 		break;
 	case TIME:
-		ret = parseIntField(c, buffer, counter, &dataP->time);
+		ret = parseFloatField(c, buffer, counter, &dataP->time);
 		if (ret == 1) {
 			counter = 0;
 			parserState = VALID;
@@ -312,7 +313,7 @@ int parseGPS(char c, struct gps_data * dataP) {
 		}
 		break;
 	case LAT:
-		ret = parseFloatField(c, buffer, counter, &dataP->lat);
+		ret = parseFloatField(c, buffer, counter, &dataP->latitude);
 		if (ret == 1) {
 			counter = 0;
 			parserState = LAT_DIR;
@@ -330,11 +331,11 @@ int parseGPS(char c, struct gps_data * dataP) {
 		if (c == ',') {
 			parserState = LONG;
 		} else if (c == 'W') {
-			dataP->lat = -dataP->lat;
+			dataP->latitude = -dataP->latitude;
 		}
 		break;
 	case LONG:
-		ret = parseFloatField(c, buffer, counter, &dataP->lng);
+		ret = parseFloatField(c, buffer, counter, &dataP->longitude);
 		if (ret == 1) {
 			counter = 0;
 			parserState = LONG_DIR;
@@ -352,7 +353,7 @@ int parseGPS(char c, struct gps_data * dataP) {
 		if (c == ',') {
 			parserState = SPEED;
 		} else if (c == 'S') {
-			dataP->lng = -dataP->lng;
+			dataP->longitude = -dataP->longitude;
 		}
 		break;
 	case SPEED:
@@ -429,7 +430,7 @@ int parseGPS(char c, struct gps_data * dataP) {
 			if (sum != dataP->checksum) {
 				dataP->valid = -1;
 			}else{
-				new_fix(dataP);
+				new_fix(*dataP);
 			}
 			parserState = SYNC;
 			return 1;
