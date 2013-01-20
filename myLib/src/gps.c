@@ -5,18 +5,8 @@
 #define PI 3.14159265358f
 #define PREC 5
 
-struct float_parse {
-	float value;
-	short int multiply;
-	short int inc;
-	unsigned int divide;
-}* pFloat;
-
-const char * fix_sequence = "$GPRMC,f,%,f,%,f,%,f,f,f,f,f,%*h";
-
 unsigned int i = 0;
 unsigned int field = 0;
-struct my_fifo gps_fifo;
 struct gps_fix * pfix;
 
 float mySin(float x);
@@ -26,19 +16,35 @@ float radians(float x);
 float sq(float x);
 void distance_between(float lat1, const float long1, float lat2,
 		const float long2, float * distance, int * bearing);
-int isFloat(unsigned char c);
-int isInteger(unsigned char c);
-int isUpperCase(unsigned char c);
-void init_float(struct float_parse * myFloat);
-float addDigit(struct float_parse * myFloat, unsigned char digit);
-void addToField(unsigned int fieldNumber, unsigned char c);
-void init_gps();
-void init_fix(struct gps_fix * fix_pointer);
-void parseStream(struct my_fifo * fif);
 
 #define PI_FLOAT     3.14159265f
 #define PIBY2_FLOAT  1.5707963f
 // |error| < 0.005
+
+
+enum gps_parser_state {
+	SYNC,
+	HEADER,
+	TIME,
+	VALID,
+	LAT,
+	LAT_DIR,
+	LONG,
+	LONG_DIR,
+	SPEED,
+	COURSE,
+	DATE,
+	MAGN,
+	MAGN_DIR,
+	CHECKSUM,
+};
+enum gps_parser_state parserState;
+unsigned int counter;
+unsigned char frame_checksum;
+char buffer[12];
+
+
+
 float fast_atan2f(float y, float x) {
 	if (x == 0.0f) {
 		if (y > 0.0f)
@@ -184,190 +190,263 @@ void distance_from(float lat2, const float long2, float * distance, int * bearin
 	 distance_between(pfix->latitude, pfix->longitude, lat2, long2, distance, bearing);
 }
 
-int isFloat(unsigned char c) {
-	return (c > 47 && c < 58) || (c == '.');
-}
 
-int isInteger(unsigned char c) {
-	return (c > 47 && c < 58);
-}
-
-int isHex(unsigned char c) {
-	return (c > 47 && c < 58) || (c > 64 && c < 71);
-}
-
-int isUpperCase(unsigned char c) {
-	return (c > 64 && c < 91);
-}
-
-void init_float(struct float_parse * myFloat) {
-	myFloat->value = 0.0;
-	myFloat->divide = 1;
-	myFloat->multiply = 10;
-	myFloat->inc = 1;
-}
-
-float addDigit(struct float_parse * myFloat, unsigned char digit) {
-	if (digit == '.') {
-		myFloat->divide = 10;
-		myFloat->inc = 10;
-		myFloat->multiply = 1;
-	} else {
-		myFloat->value = myFloat->value * myFloat->multiply;
-		myFloat->value += (float) (digit - '0') / (float) myFloat->divide;
-		myFloat->divide = myFloat->divide * myFloat->inc;
+double myAtoF(char * buffer){
+	double result = 0 ;
+	unsigned char decPos = 0;
+	unsigned char i = 0;
+	while(buffer[i] != '\0'){
+		if(buffer[i] == '.'){
+			decPos = i ;
+			i ++ ;
+			continue ;
+		}
+		result = result * 10 ;
+		result += buffer[i] - 48 ;
+		i ++ ;
 	}
-	return myFloat->value;
+	for(; decPos < (i-1) ; decPos ++){
+		result = result/10 ;
+	}
+	return result ;
 }
 
-inline float Dmtod(float Dm) {
-	int D = Dm / 100;
-	float m = Dm - (D * 100);
-	return D + m / 60;
+int myAtoI(char * buffer){
+		int result = 0 ;
+		unsigned char i = 0;
+		while(buffer[i] != '\0'){
+			if(buffer[i] == '.') return result ;
+			result = result * 10 ;
+			result += buffer[i] - 48 ;
+			i ++ ;
+		}
+		return result ;
 }
 
-void addToField(unsigned int fieldNumber, unsigned char c) {
+unsigned char asciiToHex(char * buffer){
+	unsigned char result = 0 ;
+	unsigned char i = 0;
+	while(buffer[i] != '\0'){
+		result = (result << 4) ;
+		if(buffer[i] < 'A'){
+			result += buffer[i] - 48 ;
+		}else{
+			result += buffer[i] - ('A' - 10) ;
+		}
+		i ++ ;
+	}
+	return result ;
+}
+
+char parseIntField(char c, char * buffer, unsigned int count, int * val) {
+	buffer[count] = c;
 	if (c == ',') {
-		init_float(pFloat);
-		return;
+		buffer[count] = '\0';
+		*val = myAtoI(buffer);
+		if (*val < 0) {
+			return -1;
+		} else {
+			return 1;
+		}
 	}
-	switch (fieldNumber) {
-	case 0:
-		break;
-	case 1:
-		pfix->time = addDigit(pFloat, c);
-		break;
-	case 2:
+	return 0;
+}
 
-		if (c == 'A') {
-			pfix->valid = 1;
+char parseFloatField(char c, char * buffer, unsigned int count, float * val) {
+	buffer[count] = c;
+	if (c == ',') {
+		buffer[count] = '\0';
+		*val = myAtoF(buffer);
+		if (*val < 0) {
+			return -1;
+		} else {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int parseGPS(char c, struct gps_data * dataP) {
+	unsigned char ret;
+	frame_checksum ^= c;
+	switch (parserState) {
+	case SYNC:
+		counter = 0;
+		if (c == '$') {
+			parserState = HEADER;
+			frame_checksum = 0;
 		}
 		break;
-	case 3:
-		pfix->latitude = addDigit(pFloat, c);
-		break;
-	case 4:
-		if (c != 'N') {
-			pfix->latitude = -pfix->latitude;
+	case HEADER:
+		if (c == ',') {
+			parserState = TIME;
+			counter = 0;
+		} else if (c != header[counter]) {
+			parserState = SYNC;
+		} else {
+			counter++;
 		}
 		break;
-	case 5:
-		pfix->longitude = addDigit(pFloat, c);
-		break;
-	case 6:
-		if (c != 'E') {
-			pfix->longitude = -pfix->longitude;
+	case TIME:
+		ret = parseIntField(c, buffer, counter, &dataP->time);
+		if (ret == 1) {
+			counter = 0;
+			parserState = VALID;
+			return 0;
+		} else if (ret == -1) {
+			counter = 0;
+			parserState = SYNC;
+			return 0;
+
+		} else {
+			counter++;
 		}
 		break;
-	case 7:
-		pfix->speed = addDigit(pFloat, c);
+	case VALID:
+		if (c == ',') {
+			parserState = LAT;
+		} else if (c == 'A') {
+			dataP->valid = 1;
+		} else {
+			dataP->valid = -1;
+		}
 		break;
-	case 8:
+	case LAT:
+		ret = parseFloatField(c, buffer, counter, &dataP->lat);
+		if (ret == 1) {
+			counter = 0;
+			parserState = LAT_DIR;
+			return 0;
+		} else if (ret == -1) {
+			counter = 0;
+			parserState = SYNC;
+			return 0;
+
+		} else {
+			counter++;
+		}
 		break;
-	case 9:
-		pfix->date = addDigit(pFloat, c);
+	case LAT_DIR:
+		if (c == ',') {
+			parserState = LONG;
+		} else if (c == 'W') {
+			dataP->lat = -dataP->lat;
+		}
+		break;
+	case LONG:
+		ret = parseFloatField(c, buffer, counter, &dataP->lng);
+		if (ret == 1) {
+			counter = 0;
+			parserState = LONG_DIR;
+			return 0;
+		} else if (ret == -1) {
+			counter = 0;
+			parserState = SYNC;
+			return 0;
+
+		} else {
+			counter++;
+		}
+		break;
+	case LONG_DIR:
+		if (c == ',') {
+			parserState = SPEED;
+		} else if (c == 'S') {
+			dataP->lng = -dataP->lng;
+		}
+		break;
+	case SPEED:
+		ret = parseFloatField(c, buffer, counter, &dataP->speed);
+		if (ret == 1) {
+			counter = 0;
+			parserState = COURSE;
+			return 0;
+		} else if (ret == -1) {
+			counter = 0;
+			parserState = SYNC;
+			return 0;
+		} else {
+			counter++;
+		}
+		break;
+	case COURSE:
+		ret = parseFloatField(c, buffer, counter, &dataP->course);
+		if (ret == 1) {
+			counter = 0;
+			parserState = DATE;
+			return 0;
+		} else if (ret == -1) {
+			counter = 0;
+			parserState = SYNC;
+			return 0;
+		} else {
+			counter++;
+		}
+		break;
+	case DATE:
+		ret = parseIntField(c, buffer, counter, &dataP->date);
+		if (ret == 1) {
+			counter = 0;
+			parserState = MAGN;
+			return 0;
+		} else if (ret == -1) {
+			counter = 0;
+			parserState = SYNC;
+			return 0;
+		} else {
+			counter++;
+		}
+		break;
+	case MAGN:
+		ret = parseFloatField(c, buffer, counter, &dataP->magn_var);
+		if (ret == 1) {
+			counter = 0;
+			parserState = MAGN_DIR;
+			return 0;
+		} else if (ret == -1) {
+			counter = 0;
+			parserState = SYNC;
+			return 0;
+		} else {
+			counter++;
+		}
+		break;
+	case MAGN_DIR:
+		if (c == '*') {
+			parserState = CHECKSUM;
+		} else if (c == 'W') {
+			dataP->magn_var = -dataP->magn_var;
+		} else {
+			dataP->checksum = frame_checksum;
+		}
+		break;
+	case CHECKSUM:
+		buffer[counter] = c;
+		if (c == '\n') {
+			unsigned char sum;
+			buffer[counter] = '\0';
+			sum = asciiToHex(buffer);
+			if (sum != dataP->checksum) {
+				dataP->valid = -1;
+			}
+			gps_callback(dataP);
+			parserState = SYNC;
+			return 1;
+
+		} else {
+			counter++;
+		}
 		break;
 	default:
 		break;
+
 	}
-
+	return 0;
 }
 
-void init_gps() {
-	pFloat = (struct float_parse *) malloc(sizeof(struct float_parse));
-	gps_fifo.write_index = FIFO_DIST;
-	gps_fifo.read_index = 0;
-	gps_fifo.distance = FIFO_DIST;
-	pfix = (struct gps_fix *) malloc(sizeof(struct gps_fix));
-	init_fix(pfix);
-	init_float(pFloat);
-}
 
-void init_fix(struct gps_fix * fix_pointer) {
-	fix_pointer->latitude = 0.0;
-	fix_pointer->longitude = 0.0;
-	fix_pointer->latitude = 0.0;
-	fix_pointer->longitude = 0.0;
-	fix_pointer->valid = 0.0;
-}
 
-void parseStream(struct my_fifo * fif) {
-	unsigned char new_char;
-	unsigned char char_consumed = 1;
-	while (fifo_available(fif)) {
-		new_char = fifo_peek(fif);
-		switch (fix_sequence[i]) {
-		case 'f':
-			if (isFloat(new_char)) {
-				fifo_inc(fif);
-				char_consumed = 1;
-			} else {
-				i++;
-			}
-			break;
-		case ',':
-			if (new_char == fix_sequence[i]) {
-				char_consumed = 1;
-				fifo_inc(fif);
-				i++;
-				field++;
-			} else {
-				char_consumed = 1;
-				fifo_inc(fif);
-				i = 0;
-				field = 0;
-			}
-			break;
-		case 'd':
-			if (isInteger(new_char)) {
-				char_consumed = 1;
-				fifo_inc(fif);
-			} else {
-				i++;
-			}
-			break;
-		case 'h':
-			if (isHex(new_char)) {
-				char_consumed = 1;
-				fifo_inc(fif);
-			} else {
-				i++;
-			}
-			break;
-		case '%':
-			if (isUpperCase(new_char)) {
-				char_consumed = 1;
-				fifo_inc(fif);
-			} else {
-				i++;
-			}
-			break;
-		default:
-			if (new_char == fix_sequence[i]) {
-				char_consumed = 1;
-				fifo_inc(fif);
-				i++;
-			} else {
-				char_consumed = 1;
-				fifo_inc(fif);
-				i = 0;
-				field = 0;
-			}
-			break;
-		}
-		if (char_consumed) {
-			addToField(field, new_char);
-		}
-		if (fix_sequence[i] == '\0') {
-			i = 0;
-			field = 0;
-			if (pfix->valid) {
-				pfix->longitude = Dmtod(pfix->longitude);
-				pfix->latitude = Dmtod(pfix->latitude);
-				new_fix(*pfix);
-				init_fix(pfix);
-			}
-		}
-	}
-}
+
+
+
 

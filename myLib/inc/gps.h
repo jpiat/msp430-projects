@@ -3,8 +3,8 @@
 #include  <msp430g2553.h>
 #include <stdlib.h>
 
-#define FIFO_SIZE 64
-#define FIFO_DIST 10
+#define FIFO_SIZE 10
+#define FIFO_DIST 4
 
 struct my_fifo{
 	unsigned char buffer [FIFO_SIZE] ;
@@ -27,7 +27,7 @@ extern struct my_fifo gps_fifo ;
 
 extern void new_fix(struct gps_fix fix);
 
-void parseStream(struct my_fifo * fif);
+int parseGPS(char c, struct gps_fix * dataP);
 void distance_from (float lat2, const float long2, float * distance, int * bearing);
 void init_gps(void);
 
