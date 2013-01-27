@@ -319,10 +319,8 @@ int main(){
 		unsigned char length ;
 		if(fifo_available(&uartFifo) > 0){
 			gpsChar = fifo_read(&uartFifo);	
-			//uart_send_char(gpsChar);
 			if(parseGPS(gpsChar, &gpsFix) > 0){
 				length = sprintf(pageBuffer, "%f\n%f\n%d", gpsFix.latitude, gpsFix.longitude, gpsFix.time); 
-				//uart_send_data(pageBuffer, length);
 				print_screen(7, 0, pageBuffer);					
 				P1OUT |= BIT0 ;
 			}

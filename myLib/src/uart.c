@@ -26,6 +26,21 @@ void uart_send_char(unsigned char val){
 }
 
 
+void enableRX(){
+	IE2 |= UCA0RXIE ;
+	P1DIR |= BIT1 ;
+	P1SEL |= BIT1 ;
+	P1SEL2 |= BIT1 ;
+	
+}
+
+void disableRX(){
+	IE2 &= ~UCA0RXIE ;
+	P1DIR &= ~BIT1 ;
+	P1SEL &= ~BIT1 ;
+	P1SEL2 &= ~BIT1 ;	
+}
+
 
 void UartRxInterruptService(void){
 	while(!(IFG2&UCA0TXIFG));

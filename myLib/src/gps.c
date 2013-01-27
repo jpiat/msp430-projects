@@ -42,6 +42,7 @@ enum gps_parser_state {
 enum gps_parser_state parserState;
 unsigned int counter;
 unsigned char frame_checksum;
+unsigned char curr_sum ;
 char buffer[12];
 char * header = "GPRMC";
 
@@ -192,37 +193,7 @@ void distance_from(float lat2, const float long2, float * distance, int * bearin
 }
 
 
-double myAtoF(char * buffer){
-	double result = 0 ;
-	unsigned char decPos = 0;
-	unsigned char i = 0;
-	while(buffer[i] != '\0'){
-		if(buffer[i] == '.'){
-			decPos = i ;
-			i ++ ;
-			continue ;
-		}
-		result = result * 10 ;
-		result += buffer[i] - 48 ;
-		i ++ ;
-	}
-	for(; decPos < (i-1) ; decPos ++){
-		result = result/10 ;
-	}
-	return result ;
-}
 
-int myAtoI(char * buffer){
-		int result = 0 ;
-		unsigned char i = 0;
-		while(buffer[i] != '\0'){
-			if(buffer[i] == '.') return result ;
-			result = result * 10 ;
-			result += buffer[i] - 48 ;
-			i ++ ;
-		}
-		return result ;
-}
 
 unsigned char asciiToHex(char * buffer){
 	unsigned char result = 0 ;
@@ -239,41 +210,82 @@ unsigned char asciiToHex(char * buffer){
 	return result ;
 }
 
-char parseIntField(char c, char * buffer, unsigned int count, int * val) {
-	buffer[count] = c;
-	if (c == ',') {
-		buffer[count] = '\0';
-		*val = myAtoI(buffer);
-		if (*val < 0) {
-			return -1;
-		} else {
-			return 1;
+char parseIntField(char c, char * buffer, char * count, int * val) {
+	if (c >= '0' && c <= '9') {
+		*val *= 10;
+		*val += c - '0';
+		*count = *count + 1;
+		return 0;
+	} else if (c == '.') {
+		*count = 0;
+		return 0;
+	} else if (c == ',') {
+		while (*count > 0) {
+			*val = *val / 10;
+			*count = *count - 1;
 		}
+		return 1 ;
+	} else {
+		return -1;
 	}
-	return 0;
 }
 
-char parseFloatField(char c, char * buffer, unsigned int count, float * val) {
-	buffer[count] = c;
-	if (c == ',') {
-		buffer[count] = '\0';
-		*val = myAtoF(buffer);
-		if (*val < 0) {
-			return -1;
-		} else {
-			return 1;
+char parseFloatField(char c, char * buffer, char * count, float * val) {
+	if (c >= '0' && c <= '9') {
+		*val *= 10;
+		*val += c - '0';
+		*count = *count + 1;
+		return 0;
+	} else if (c == '.') {
+		*count = 0;
+		return 0;
+	} else if (c == ',') {
+		while (*count > 0) {
+			*val = *val / 10;
+			*count = *count - 1;
 		}
+		return 1;
+	} else {
+		return -1;
 	}
-	return 0;
 }
+
+char parseHexField(char c, char * buffer, char * count, unsigned char * val) {	
+	if (c >= '0' && c <= '9' || c >= 'A' && c <= 'F') {
+		*val = *val << 4;
+		if(c < 'A'){
+			*val += c - 48 ;
+		}else{
+			*val += c - ('A' - 10) ;
+		}
+		return 0;
+	} else if (c == '\n') {
+		*count = 0;
+		return 1;
+	} else {
+		return -1;
+	}
+}
+
 
 int parseGPS(char c, struct gps_fix * dataP) {
-	unsigned char ret;
+	char ret;
 	frame_checksum ^= c;
 	switch (parserState) {
 	case SYNC:
 		counter = 0;
 		if (c == '$') {
+			parserState = HEADER;
+			dataP->checksum = 0;
+			dataP->course = 0;
+			dataP->date = 0;
+			dataP->lat = 0;
+			dataP->lng = 0;
+			dataP->magn_var = 0;
+			dataP->speed = 0;
+			dataP->time = 0;
+			dataP->valid = 0;
+
 			parserState = HEADER;
 			frame_checksum = 0;
 		}
@@ -289,18 +301,14 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case TIME:
-		ret = parseFloatField(c, buffer, counter, &dataP->time);
+		ret = parseFloatField(c, buffer, &counter, &dataP->time);
 		if (ret == 1) {
-			counter = 0;
 			parserState = VALID;
 			return 0;
 		} else if (ret == -1) {
-			counter = 0;
 			parserState = SYNC;
 			return 0;
 
-		} else {
-			counter++;
 		}
 		break;
 	case VALID:
@@ -313,103 +321,78 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case LAT:
-		ret = parseFloatField(c, buffer, counter, &dataP->latitude);
+		ret = parseFloatField(c, buffer, &counter, &dataP->lat);
 		if (ret == 1) {
-			counter = 0;
 			parserState = LAT_DIR;
 			return 0;
 		} else if (ret == -1) {
-			counter = 0;
 			parserState = SYNC;
 			return 0;
-
-		} else {
-			counter++;
 		}
 		break;
 	case LAT_DIR:
 		if (c == ',') {
 			parserState = LONG;
 		} else if (c == 'W') {
-			dataP->latitude = -dataP->latitude;
+			dataP->lat = -dataP->lat;
 		}
 		break;
 	case LONG:
-		ret = parseFloatField(c, buffer, counter, &dataP->longitude);
+		ret = parseFloatField(c, buffer, &counter, &dataP->lng);
 		if (ret == 1) {
-			counter = 0;
 			parserState = LONG_DIR;
 			return 0;
 		} else if (ret == -1) {
-			counter = 0;
 			parserState = SYNC;
 			return 0;
 
-		} else {
-			counter++;
 		}
 		break;
 	case LONG_DIR:
 		if (c == ',') {
 			parserState = SPEED;
 		} else if (c == 'S') {
-			dataP->longitude = -dataP->longitude;
+			dataP->lng = -dataP->lng;
 		}
 		break;
 	case SPEED:
-		ret = parseFloatField(c, buffer, counter, &dataP->speed);
+		ret = parseFloatField(c, buffer, &counter, &dataP->speed);
 		if (ret == 1) {
-			counter = 0;
 			parserState = COURSE;
 			return 0;
 		} else if (ret == -1) {
-			counter = 0;
 			parserState = SYNC;
 			return 0;
-		} else {
-			counter++;
 		}
 		break;
 	case COURSE:
-		ret = parseFloatField(c, buffer, counter, &dataP->course);
+		ret = parseFloatField(c, buffer, &counter, &dataP->course);
 		if (ret == 1) {
-			counter = 0;
 			parserState = DATE;
 			return 0;
 		} else if (ret == -1) {
-			counter = 0;
 			parserState = SYNC;
 			return 0;
-		} else {
-			counter++;
 		}
 		break;
 	case DATE:
-		ret = parseIntField(c, buffer, counter, &dataP->date);
+		ret = parseFloatField(c, buffer, &counter, &dataP->date);
 		if (ret == 1) {
-			counter = 0;
 			parserState = MAGN;
 			return 0;
 		} else if (ret == -1) {
-			counter = 0;
 			parserState = SYNC;
 			return 0;
-		} else {
-			counter++;
 		}
 		break;
 	case MAGN:
-		ret = parseFloatField(c, buffer, counter, &dataP->magn_var);
+		ret = parseFloatField(c, buffer, &counter, &dataP->magn_var);
 		if (ret == 1) {
-			counter = 0;
 			parserState = MAGN_DIR;
 			return 0;
 		} else if (ret == -1) {
-			counter = 0;
 			parserState = SYNC;
 			return 0;
-		} else {
-			counter++;
 		}
 		break;
 	case MAGN_DIR:
@@ -422,21 +405,18 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case CHECKSUM:
-		buffer[counter] = c;
-		if (c == '\n') {
-			unsigned char sum;
-			buffer[counter] = '\0';
-			sum = asciiToHex(buffer);
-			if (sum != dataP->checksum) {
+		ret = parseHexField(c, &buffer, &count, &curr_sum) ;
+		if (ret > 0) {
+			if (curr_sum != dataP->checksum) {
 				dataP->valid = -1;
 			}else{
-				new_fix(*dataP);
+				gps_callback(dataP);
 			}
 			parserState = SYNC;
 			return 1;
 
-		} else {
-			counter++;
+		}else if(ret < 0){
+			parserState = SYNC;
 		}
 		break;
 	default:
