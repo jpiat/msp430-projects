@@ -40,10 +40,9 @@ enum gps_parser_state {
 	CHECKSUM,
 };
 enum gps_parser_state parserState;
-unsigned int counter;
+unsigned char counter;
 unsigned char frame_checksum;
 unsigned char curr_sum ;
-char buffer[12];
 char * header = "GPRMC";
 
 
@@ -159,7 +158,7 @@ void distance_between2(float lat1, const float long1, float lat2,
 	float cosLat2 = myCos(lat2);
 	float a = (sindLat * sindLat) + (sindLong * sindLong * cosLat1 * cosLat2);
 	float sa = mySqrt(a);
-	float c = 2 * fast_atan2f(mySqrt(a), mySqrt(1 - a));
+	float c = 2 * fast_atan2f(sa, mySqrt(1 - a));
 	*distance = c * 6372.795;
 }
 
@@ -194,23 +193,7 @@ void distance_from(float lat2, const float long2, float * distance, int * bearin
 
 
 
-
-unsigned char asciiToHex(char * buffer){
-	unsigned char result = 0 ;
-	unsigned char i = 0;
-	while(buffer[i] != '\0'){
-		result = (result << 4) ;
-		if(buffer[i] < 'A'){
-			result += buffer[i] - 48 ;
-		}else{
-			result += buffer[i] - ('A' - 10) ;
-		}
-		i ++ ;
-	}
-	return result ;
-}
-
-char parseIntField(char c, char * buffer, char * count, int * val) {
+char parseIntField(char c, unsigned char * count, int * val) {
 	if (c >= '0' && c <= '9') {
 		*val *= 10;
 		*val += c - '0';
@@ -226,11 +209,12 @@ char parseIntField(char c, char * buffer, char * count, int * val) {
 		}
 		return 1 ;
 	} else {
+		*count = 0;
 		return -1;
 	}
 }
 
-char parseFloatField(char c, char * buffer, char * count, float * val) {
+char parseFloatField(char c, unsigned char * count, float * val) {
 	if (c >= '0' && c <= '9') {
 		*val *= 10;
 		*val += c - '0';
@@ -246,23 +230,26 @@ char parseFloatField(char c, char * buffer, char * count, float * val) {
 		}
 		return 1;
 	} else {
+		*count = 0;
 		return -1;
 	}
 }
 
-char parseHexField(char c, char * buffer, char * count, unsigned char * val) {	
-	if (c >= '0' && c <= '9' || c >= 'A' && c <= 'F') {
+char parseHexField(char c, unsigned char * count, unsigned char * val) {	
+	if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')) {
 		*val = *val << 4;
 		if(c < 'A'){
 			*val += c - 48 ;
 		}else{
 			*val += c - ('A' - 10) ;
 		}
+		*count = *count + 1 ;
 		return 0;
 	} else if (c == '\n') {
 		*count = 0;
 		return 1;
 	} else {
+		*count = 0;
 		return -1;
 	}
 }
@@ -279,8 +266,8 @@ int parseGPS(char c, struct gps_fix * dataP) {
 			dataP->checksum = 0;
 			dataP->course = 0;
 			dataP->date = 0;
-			dataP->lat = 0;
-			dataP->lng = 0;
+			dataP->latitude = 0;
+			dataP->longitude = 0;
 			dataP->magn_var = 0;
 			dataP->speed = 0;
 			dataP->time = 0;
@@ -301,7 +288,7 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case TIME:
-		ret = parseFloatField(c, buffer, &counter, &dataP->time);
+		ret = parseFloatField(c, &counter, &dataP->time);
 		if (ret == 1) {
 			parserState = VALID;
 			return 0;
@@ -321,7 +308,7 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case LAT:
-		ret = parseFloatField(c, buffer, &counter, &dataP->lat);
+		ret = parseFloatField(c, &counter, &dataP->latitude);
 		if (ret == 1) {
 			parserState = LAT_DIR;
 			return 0;
@@ -334,11 +321,11 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		if (c == ',') {
 			parserState = LONG;
 		} else if (c == 'W') {
-			dataP->lat = -dataP->lat;
+			dataP->latitude = -dataP->latitude;
 		}
 		break;
 	case LONG:
-		ret = parseFloatField(c, buffer, &counter, &dataP->lng);
+		ret = parseFloatField(c, &counter, &dataP->longitude);
 		if (ret == 1) {
 			parserState = LONG_DIR;
 			return 0;
@@ -352,11 +339,11 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		if (c == ',') {
 			parserState = SPEED;
 		} else if (c == 'S') {
-			dataP->lng = -dataP->lng;
+			dataP->longitude = -dataP->longitude;
 		}
 		break;
 	case SPEED:
-		ret = parseFloatField(c, buffer, &counter, &dataP->speed);
+		ret = parseFloatField(c, &counter, &dataP->speed);
 		if (ret == 1) {
 			parserState = COURSE;
 			return 0;
@@ -366,7 +353,7 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case COURSE:
-		ret = parseFloatField(c, buffer, &counter, &dataP->course);
+		ret = parseFloatField(c, &counter, &dataP->course);
 		if (ret == 1) {
 			parserState = DATE;
 			return 0;
@@ -376,7 +363,7 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case DATE:
-		ret = parseFloatField(c, buffer, &counter, &dataP->date);
+		ret = parseFloatField(c, &counter, &dataP->date);
 		if (ret == 1) {
 			parserState = MAGN;
 			return 0;
@@ -386,7 +373,7 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case MAGN:
-		ret = parseFloatField(c, buffer, &counter, &dataP->magn_var);
+		ret = parseFloatField(c, &counter, &dataP->magn_var);
 		if (ret == 1) {
 			parserState = MAGN_DIR;
 			return 0;
@@ -405,16 +392,16 @@ int parseGPS(char c, struct gps_fix * dataP) {
 		}
 		break;
 	case CHECKSUM:
-		ret = parseHexField(c, &buffer, &count, &curr_sum) ;
+		ret = parseHexField(c, &counter, &curr_sum) ;
 		if (ret > 0) {
 			if (curr_sum != dataP->checksum) {
 				dataP->valid = -1;
+				parserState = SYNC;
+				return -1 ; 
 			}else{
-				gps_callback(dataP);
+				parserState = SYNC;
+				return 1 ;
 			}
-			parserState = SYNC;
-			return 1;
-
 		}else if(ret < 0){
 			parserState = SYNC;
 		}
