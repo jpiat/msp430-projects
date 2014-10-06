@@ -1,7 +1,7 @@
 #include <spi.h>
 #include <legacymsp430.h>
 
-#define SPI_BB_CYCLE 20
+#define SPI_BB_CYCLE 5
 
 
 void setupSpiSlave(spi_slave * slave){
@@ -15,7 +15,7 @@ void setupSpiSlave(spi_slave * slave){
 		UCB0CTL0 |= UCCKPL | UCMSB | UCMST | UCSYNC ;
 		UCB0CTL1 |= UCSSEL_2 ;
 		UCB0BR0 |= 64; //prescale by 64
-		UCB0BR1	|= 0 ;
+		UCB0BR1	|= 0 ; //
 		UCB0CTL1 &= ~UCSWRST ;
 	}else{
 		P2DIR |= ( 1 << (slave -> csPin)); // CS	
@@ -74,22 +74,6 @@ unsigned char spiWriteByte(unsigned char val, spi_slave * slave){
 			__delay_cycles(SPI_BB_CYCLE);		
 		}
 		__delay_cycles(SPI_BB_CYCLE);
-		/*for(i = 0 ; i < 8 ; i ++){ //MODE2
-			if(valBuf & 0x80){
-				P2OUT |= ( 1 << (slave->mosiPin)); // mosi set
-			}else{
-				P2OUT &= ~( 1 << (slave->mosiPin)); // mosi clear
-			}
-			valBuf = (valBuf << 1);
-			P2OUT &= ~( 1 << (slave->clkPin)); // clk down	
-			__delay_cycles(SPI_BB_CYCLE);
-			inBuf = (inBuf << 1) ;
-			if((P2IN & (slave->misoPin))){
-				inBuf |= 0x01 ;
-			}
-			P2OUT |= ( 1 << (slave->clkPin)); // clk up
-			__delay_cycles(SPI_BB_CYCLE);	
-		}*/
 		
 		return inBuf ;
 	}

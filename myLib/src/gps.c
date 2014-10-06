@@ -257,6 +257,7 @@ char parseHexField(char c, unsigned char * count, unsigned char * val) {
 
 int parseGPS(char c, struct gps_fix * dataP) {
 	char ret;
+	char old_checksum = frame_checksum ;
 	frame_checksum ^= c;
 	switch (parserState) {
 	case SYNC:

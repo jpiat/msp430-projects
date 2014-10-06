@@ -5,8 +5,8 @@
 #define I2C_H
 void initi2c(unsigned int divider);
 void writei2c(unsigned char addr, unsigned char * data, unsigned char nbData);
-unsigned char readi2c(unsigned char addr);
-inline void i2cTxInterruptService(void);
-inline void i2cRxInterruptService(void);
+unsigned char readi2c(unsigned char addr, unsigned char * data, unsigned char nbData);
+inline void i2cDataInterruptService(void);
+inline void i2cErrorInterruptService(void);
 
 #endif

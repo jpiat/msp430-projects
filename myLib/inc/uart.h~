@@ -10,5 +10,6 @@ void uart_send_char(unsigned char val);
 void setup_uart_9600();
 void enableRX();
 void disableRX();
+setup_uart_115200();
 #endif
 

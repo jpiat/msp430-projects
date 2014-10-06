@@ -6,7 +6,6 @@ inline unsigned char fifo_available(struct my_fifo * const fif) {
 }
 
 
-
 inline unsigned char fifo_peek(struct my_fifo * const fif) {
 	while (fif->distance < FIFO_DIST);
 	unsigned char c = fif->buffer[fif->read_index];
@@ -32,4 +31,10 @@ inline void fifo_write(struct my_fifo * const fif, const unsigned char c) {
 		fif->write_index = (fif->write_index + 1) % FIFO_SIZE;
 		fif->distance ++;
 	}
+}
+
+inline void fifo_init(struct my_fifo * const fif){
+	fif->write_index = 0 ;
+	fif->read_index = 0 ;
+	fif->distance = 0 ;
 }
