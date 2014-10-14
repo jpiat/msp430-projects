@@ -4,7 +4,7 @@
 #include "uart.h"
 #include "fifo.h"
 #include "access_point.h"
-
+#include "keys.h"
 
 #define LED_ERROR BIT0
 #define LED_BUSY  BIT6
@@ -22,10 +22,10 @@
 
 
 char * request_string_base = "GET /input/";
-char * request_public_key = "G2EMYvV6loI5N4wZ5WRn";
+char * request_public_key = PUBLIC_KEY;
 char * request_arg_prefix = "?";
 char * request_private_key_base = "private_key=";
-char * request_private_key = "NWnE2XMbkaUR17dZRDmv";
+char * request_private_key = PRIVATE_KEY;
 char * request_string_temp = "&temp=";
 char * request_string_light = "&light=";
 char * request_string_switch0 = "&switch0=";
