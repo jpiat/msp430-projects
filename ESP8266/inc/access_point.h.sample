@@ -1,0 +1,2 @@
+#define WPA_KEY "\"your wpa key\""
+#define AP_SSID "\"your access poinr ssid\""
