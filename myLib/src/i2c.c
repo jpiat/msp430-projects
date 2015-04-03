@@ -15,14 +15,12 @@ void initi2c(unsigned int divider){
 	
 	P1SEL |= BIT6 + BIT7 ;
 	P1SEL2 |= BIT6 + BIT7 ;
-	P1DIR |= BIT6 + BIT7;
-	P1REN |= BIT6 + BIT7 ;
 	UCB0CTL1 |= UCSWRST ;
 	UCB0CTL0 = UCMST + UCMODE_3 + UCSYNC ;
 	UCB0CTL1 = UCSSEL_2 + UCSWRST ;
-	UCB0BR0 = divider ;
-	UCB0BR1 = 0;
-	UCB0I2CSA = 0x00 ; 
+	UCB0BR0 = divider & 0x00FF ;
+	UCB0BR1 = ((divider & 0xFF00) >> 8) ;
+	UCB0I2CSA = 0x20 ; 
 	UCB0I2CIE = UCNACKIE + UCALIE ;
 	UCB0CTL1 &= ~UCSWRST ;
 	IE2 |= UCB0TXIE | UCB0RXIE ;
